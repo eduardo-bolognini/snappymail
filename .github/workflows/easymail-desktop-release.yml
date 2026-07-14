@@ -50,6 +50,13 @@ jobs:
         run: |
           VERSION="$(node -p "require('./package.json').version")"
           test "$GITHUB_REF_NAME" = "v$VERSION"
+      - name: Ensure GitHub release exists
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v$VERSION"
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$VERSION" --generate-notes
       - name: Report macOS signing mode
         if: runner.os == 'macOS'
         shell: bash
