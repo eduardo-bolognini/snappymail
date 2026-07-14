@@ -132,7 +132,8 @@ export class MailMessageView extends AbstractViewRight {
 			dkimData: ['none', '', ''],
 			spfData: ['none', '', ''],
 			dmarcData: ['none', '', ''],
-			nowTracking: false
+			nowTracking: false,
+			aiGlobalInstruction: ''
 		});
 
 		this.moveAction = moveAction;
@@ -161,6 +162,7 @@ export class MailMessageView extends AbstractViewRight {
 		this.viewHash = '';
 
 		addComputablesTo(this, {
+			aiGlobalCanRun: () => this.canBeRepliedOrForwarded() && Boolean(this.aiGlobalInstruction().trim()),
 			allowAttachmentControls: () => arrayLength(attachmentsActions) && SettingsCapa('AttachmentsActions'),
 
 			downloadAsZipAllowed: () => this.attachmentsActions.includes('zip')
@@ -356,6 +358,38 @@ export class MailMessageView extends AbstractViewRight {
 	 */
 	replyOrforward(sType) {
 		showMessageComposer([sType, currentMessage()]);
+	}
+
+	aiGlobalKeydown(_view, event) {
+		if ('Enter' === event.key && !event.shiftKey) {
+			event.preventDefault();
+			this.submitGlobalAiCommand();
+			return false;
+		}
+		return true;
+	}
+
+	submitGlobalAiCommand() {
+		const instruction = this.aiGlobalInstruction().trim(),
+			message = currentMessage();
+		if (!instruction || !message) return;
+		const normalized = instruction.toLowerCase(),
+			type = /\b(?:inoltr\w*|forward\w*|trasmett\w*)\b/i.test(normalized)
+				? ComposeType.Forward
+				: /\b(?:rispond\w*\s+(?:a\s+)?tutt\w*|reply\s+all)\b/i.test(normalized)
+					? ComposeType.ReplyAll
+					: ComposeType.Reply;
+		this.aiGlobalInstruction('');
+		showMessageComposer([
+			type,
+			message,
+			null,
+			null,
+			null,
+			null,
+			null,
+			{ delegate: true, instruction }
+		]);
 	}
 
 	onBuild(dom) {

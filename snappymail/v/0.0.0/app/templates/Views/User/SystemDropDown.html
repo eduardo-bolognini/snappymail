@@ -1,43 +1,55 @@
-<div class="btn-toolbar g-ui-user-select-none">
-	<div class="audioPlace"
+<div class="sidebar-accounts g-ui-user-select-none">
+	<button type="button" class="sidebar-ai-button" data-bind="visible: desktopAIAvailable, click: desktopAIClick">
+		<span class="sidebar-ai-mark"><span class="g-icon g-icon--sparkles" aria-hidden="true"></span></span>
+		<span class="sidebar-ai-label" data-bind="visible: !desktopAIConnected()" data-i18n="DESKTOP_AI/CONNECT_CODEX"></span>
+		<span class="sidebar-ai-label" data-bind="visible: desktopAIConnected" data-i18n="DESKTOP_AI/CODEX_SETTINGS"></span>
+		<span class="g-icon g-icon--chevron-right sidebar-ai-arrow" aria-hidden="true"></span>
+	</button>
+	<div class="sidebar-accounts-heading">
+		<span class="sidebar-accounts-label" data-i18n="SETTINGS_ACCOUNTS/LEGEND_ACCOUNTS"></span>
+		<div class="audioPlace"
 			data-bind="visible: '' !== currentAudio(), attr: { title: currentAudio }, click: stopPlay">
-		<div class="playIcon"><div></div></div>
-		<i class="stopIcon fontastic">⏸</i>
+			<div class="playIcon"><div></div></div>
+			<i class="stopIcon fontastic">⏸</i>
+		</div>
+		<button type="button" class="sidebar-account-add" data-bind="visible: allowAccounts, click: addAccountClick"
+			data-i18n="[title]TOP_TOOLBAR/BUTTON_ADD_ACCOUNT"><span class="g-icon g-icon--plus" aria-hidden="true"></span></button>
 	</div>
-	<div class="btn-group dropdown" data-bind="registerBootstrapDropdown: true, initDom: accountMenu">
-		<a id="top-system-dropdown-id" href="#" tabindex="-1" class="btn single btn-block dropdown-toggle">
-			<span class="accountPlace hide-mobile" data-bind="text: accountName(), attr:{ title: accountEmail }"></span>
-			<i class="fontastic" data-bind="css: {'icon-spinner': accountsLoading()}">👤</i>
-<!--
-			<b data-bind="text: accountsUnreadCount, visible: 100 > accountsUnreadCount() && accountsUnreadCount()"></b>
-			<b data-bind="visible: 99 < accountsUnreadCount()">99+</b>
-			&nbsp;
--->
-		</a>
-		<menu class="dropdown-menu right-edge" tabindex="-1" role="menu" aria-labelledby="top-system-dropdown-id">
+	<button type="button" class="sidebar-account-button sidebar-all-inboxes" data-bind="click: allInboxesClick,
+		css: {'selected': allInboxes}, attr: {'aria-current': allInboxes() ? 'true' : null}">
+		<span class="sidebar-account-avatar"><span class="g-icon g-icon--inbox" aria-hidden="true"></span></span>
+		<span class="sidebar-account-name" data-i18n="SETTINGS_ACCOUNTS/ALL_INBOXES"></span>
+	</button>
 
-			<!-- ko foreach: accounts -->
-			<li role="presentation">
-				<a class="email-title" href="#" data-bind="click: $root.accountClick, text: label(),
-					attr: {title: email, 'data-unread': unreadEmails, 'data-icon': $root.accountEmail() === email ? '✔' : '👤'}"></a>
-			</li>
-			<!-- /ko -->
+	<ul class="sidebar-account-list" data-bind="foreach: accounts, css: {'is-loading': accountsLoading}">
+		<li>
+			<button type="button" class="sidebar-account-button" data-bind="click: $root.accountClick,
+				css: {'selected': !$root.allInboxes() && $root.accountEmail() === email},
+				attr: {title: email, 'aria-current': !$root.allInboxes() && $root.accountEmail() === email ? 'true' : null}">
+				<span class="sidebar-account-avatar" data-bind="text: $root.accountInitial($data)"></span>
+				<span class="sidebar-account-name" data-bind="text: label()"></span>
+				<span class="sidebar-account-unread" data-bind="visible: unreadEmails, text: unreadEmails"></span>
+			</button>
+		</li>
+	</ul>
 
-			<li class="dividerbar" role="presentation" data-bind="visible: allowAccounts">
-				<a href="#" tabindex="-1" data-bind="click: addAccountClick" data-icon="✚" data-i18n="TOP_TOOLBAR/BUTTON_ADD_ACCOUNT"></a>
-			</li>
-			<li role="presentation" data-bind="visible: allowContacts">
-				<a href="#" tabindex="-1" data-bind="click: contactsClick" data-icon="📇" data-i18n="GLOBAL/CONTACTS"></a>
-			</li>
-			<li role="presentation">
-				<a href="#" tabindex="-1" data-bind="click: settingsClick" data-icon="⚙" data-i18n="TITLES/SETTINGS"></a>
-			</li>
-			<li role="presentation">
-				<a href="#" tabindex="-1" data-bind="click: settingsHelp" data-icon="🛈" data-i18n="GLOBAL/HELP"></a>
-			</li>
-			<li class="dividerbar" role="presentation">
-				<a href="#" tabindex="-1" data-bind="click: logoutClick" data-icon="⏻" data-i18n="GLOBAL/LOGOUT"></a>
-			</li>
-		</menu>
+	<section class="sidebar-contacts-section" data-bind="visible: desktopAIAvailable || allowContacts">
+		<div class="sidebar-section-heading" data-i18n="GLOBAL/CONTACTS"></div>
+		<button type="button" class="sidebar-contact-button" data-bind="visible: desktopAIAvailable, click: smartContactsClick" data-i18n="[title]DESKTOP_AI/CONTACT_DOSSIERS">
+			<span class="sidebar-contact-icon"><span class="g-icon g-icon--person-pencil" aria-hidden="true"></span></span>
+			<span class="sidebar-contact-text" data-i18n="DESKTOP_AI/CONTACT_DOSSIERS"></span>
+			<span class="g-icon g-icon--chevron-right sidebar-contact-arrow" aria-hidden="true"></span>
+		</button>
+		<button type="button" class="sidebar-contact-button" data-bind="visible: allowContacts, click: contactsClick" data-i18n="[title]DESKTOP_AI/ADDRESS_BOOK">
+			<span class="sidebar-contact-icon"><span class="g-icon g-icon--persons" aria-hidden="true"></span></span>
+			<span class="sidebar-contact-text" data-i18n="DESKTOP_AI/ADDRESS_BOOK"></span>
+			<span class="g-icon g-icon--chevron-right sidebar-contact-arrow" aria-hidden="true"></span>
+		</button>
+	</section>
+
+	<div class="sidebar-account-actions">
+		<button type="button" data-bind="click: settingsClick" data-i18n="[title]TITLES/SETTINGS"><span class="g-icon g-icon--gear" aria-hidden="true"></span></button>
+		<button type="button" data-bind="click: settingsHelp" data-i18n="[title]GLOBAL/HELP"><span class="g-icon g-icon--circle-question" aria-hidden="true"></span></button>
+		<button type="button" data-bind="click: logoutClick" data-i18n="[title]GLOBAL/LOGOUT"><span class="g-icon g-icon--arrow-right-from-square" aria-hidden="true"></span></button>
 	</div>
 </div>

@@ -1,28 +1,28 @@
 <div class="btn-toolbar" data-bind="css: {'hasChecked':checkAll}">
-	<a class="btn btn-thin fontastic toggleLeft"></a>
+	<a class="btn btn-thin toggleLeft"><span class="g-icon g-icon--bars" aria-hidden="true"></span></a>
 	<a class="btn buttonCompose onCheckedHide" data-bind="click: composeClick, css: {'btn-warning': composeInEdit, 'btn-success': !composeInEdit()}" data-i18n="[title]FOLDER_LIST/BUTTON_NEW_MESSAGE">
-		<i class="icon-paper-plane"></i>
+		<span class="g-icon g-icon--paper-plane" aria-hidden="true"></span>
 	</a>
 	<a class="btn onCheckedHide" data-bind="click: reload" data-i18n="[title]MESSAGE_LIST/BUTTON_RELOAD">
-		<i class="icon-spinner not-animated"></i>
+		<span class="g-icon g-icon--arrow-rotate-right" aria-hidden="true"></span>
 	</a>
 	<a href="#" tabindex="-1" class="btn onCheckedShow" data-bind="command: moveCommand" data-i18n="[title]GLOBAL/MOVE_TO">
-		<i class="icon-copy visible-on-ctrl-btn"></i>
-		<i class="fontastic hidden-on-ctrl-btn">📁</i>
+		<span class="g-icon g-icon--copy visible-on-ctrl-btn" aria-hidden="true"></span>
+		<span class="g-icon g-icon--folder hidden-on-ctrl-btn" aria-hidden="true"></span>
 	</a>
 	<div class="btn-group onCheckedShow">
-		<a class="btn fontastic" data-bind="visible: archiveAllowed, command: archiveCommand" data-i18n="[title]GLOBAL/TO_ARCHIVE">🗄</a>
-		<a class="btn fontastic" data-bind="visible: canMarkAsSpam, command: spamCommand" data-i18n="[title]GLOBAL/TO_SPAM">⚠</a>
+		<a class="btn" data-bind="visible: archiveAllowed, command: archiveCommand" data-i18n="[title]GLOBAL/TO_ARCHIVE"><span class="g-icon g-icon--archive" aria-hidden="true"></span></a>
+		<a class="btn" data-bind="visible: canMarkAsSpam, command: spamCommand" data-i18n="[title]GLOBAL/TO_SPAM"><span class="g-icon g-icon--circle-exclamation" aria-hidden="true"></span></a>
 		<a class="btn" data-bind="visible: isSpamFolder, command: notSpamCommand" data-i18n="[title]GLOBAL/NOT_SPAM">
-			<i class="icon-check-mark-circle-two"></i>
+			<span class="g-icon g-icon--circle-check" aria-hidden="true"></span>
 		</a>
-		<a class="btn fontastic" data-bind="command: deleteCommand" data-i18n="[title]GLOBAL/DELETE">🗑</a>
+		<a class="btn" data-bind="command: deleteCommand" data-i18n="[title]GLOBAL/DELETE"><span class="g-icon g-icon--trash-bin" aria-hidden="true"></span></a>
 <!--
 		<a class="btn fontastic" data-bind="command: undeleteCommand, hidden: hideDeleted" data-i18n="[title]GLOBAL/UNDELETE" style="transform:rotate(-180deg)">🗑</a>
 -->
 	</div>
 	<div class="btn-group dropdown" data-bind="registerBootstrapDropdown: true">
-		<a id="more-list-dropdown-id" class="btn dropdown-toggle fontastic" href="#" tabindex="-1" data-i18n="[title]GLOBAL/MORE">☰</a>
+		<a id="more-list-dropdown-id" class="btn dropdown-toggle" href="#" tabindex="-1" data-i18n="[title]GLOBAL/MORE"><span class="g-icon g-icon--ellipsis" aria-hidden="true"></span></a>
 		<menu class="dropdown-menu" role="menu" aria-labelledby="more-list-dropdown-id">
 			<li role="presentation" data-bind="click: listUnsetSeen, css: {'disabled': !messageList.hasCheckedOrSelected()}">
 				<a href="#" tabindex="-1" data-icon="" data-i18n="MESSAGE_LIST/MENU_UNSET_SEEN"></a>
@@ -117,7 +117,7 @@
 	</div>
 </div>
 
-<div class="messageList g-ui-user-select-none" data-bind="css: {'hideMessageListCheckbox': !useCheckboxesInList() }">
+<div class="messageList g-ui-user-select-none" data-bind="css: {'hideMessageListCheckbox': !useCheckboxesInList() || unifiedInbox() }">
 	<div class="second-toolbar thm-message-list-top-toolbar">
 		<i class="checkboxCheckAll fontastic" data-bind="text: checkAll() ? (isIncompleteChecked() ? '▣' : '☑') : '☐'"></i>
 		<div class="search-input-wrp">
@@ -136,11 +136,15 @@
 			<a href="#" class="g-ui-link" data-i18n="MESSAGE_LIST/BUTTON_EMPTY_FOLDER" data-bind="click: clear"></a>
 		</div>
 		<div class="listError error" data-bind="visible: !dragOver() && messageList.error(), text: messageList.error"></div>
+		<div class="listWarning" data-bind="visible: !dragOver() && messageList.warning(), text: messageList.warning"></div>
 		<div class="listEmptyMessage" data-bind="visible: listEmptyMessage(), text: listEmptyMessage()"></div>
 		<div class="listLoading" data-bind="visible: !dragOver() && !messageList().length &&
 			messageList.isLoading() && !messageList.error()">
-			<i class="icon-spinner"></i>
-			<span data-i18n="GLOBAL/LOADING"></span>
+			<span class="easy-sr-status" data-i18n="GLOBAL/LOADING"></span>
+			<div class="message-list-skeleton" aria-hidden="true"><i></i><span><b></b><b></b></span><em></em></div>
+			<div class="message-list-skeleton" aria-hidden="true"><i></i><span><b></b><b></b></span><em></em></div>
+			<div class="message-list-skeleton" aria-hidden="true"><i></i><span><b></b><b></b></span><em></em></div>
+			<div class="message-list-skeleton" aria-hidden="true"><i></i><span><b></b><b></b></span><em></em></div>
 		</div>
 
 		<!-- ko if: listGrouped -->

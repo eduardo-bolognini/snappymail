@@ -1,30 +1,51 @@
 
 #V-SettingsMenu {
-	nav {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
 
-		a {
-			background-color: transparent;
-			color: var(--settings-menu-color, #333);
-			cursor: pointer;
-			display: block;
-			font-size: 128%;
-			line-height: 2em;
-			max-height: 2em;
-			overflow: hidden;
-			padding: 0 10px;
-			text-decoration: none;
-			text-overflow: ellipsis;
-			white-space: nowrap;
-		}
+		nav {
+			padding: 4px 8px 18px;
+
+			a {
+				align-items: center;
+				background-color: transparent;
+				border-radius: 6px;
+				color: var(--settings-menu-color, #333);
+				cursor: pointer;
+				display: flex;
+				font-size: 13px;
+				font-weight: 600;
+				gap: 10px;
+				line-height: 38px;
+				margin: 2px 0;
+				max-height: 38px;
+				overflow: hidden;
+				padding: 0 11px;
+				text-decoration: none;
+				text-overflow: ellipsis;
+				transition: background-color 140ms ease, color 140ms ease, transform 180ms cubic-bezier(.16, 1, .3, 1);
+				white-space: nowrap;
+			}
+
+			.settings-menu-icon {
+				color: #85817c;
+				font-size: 16px;
+			}
 
 		a:focus, a:hover {
-			background-color: var(--settings-menu-hover-bg-color, #333);
-			color: var(--settings-menu-hover-color, #eee);
+				background-color: var(--settings-menu-hover-bg-color, #333);
+				color: var(--settings-menu-hover-color, #eee);
+				transform: translateX(2px);
 		}
 
 		a.selected {
-			background-color: var(--settings-menu-selected-bg-color, #333);
-			color: var(--settings-menu-selected-color, #eee);
+				background-color: var(--settings-menu-selected-bg-color, #333);
+				color: var(--settings-menu-selected-color, #eee);
+
+				.settings-menu-icon {
+					color: var(--focus-accent, #fc4b08);
+				}
 		}
 	}
 }
@@ -32,15 +53,22 @@
 #V-SettingsPane {
 	height: calc(100% - 50px - @rlLowMargin);
 	margin: 50px @rlLowMargin 0 0;
-	padding:20px;
+	padding: 28px clamp(24px, 4vw, 54px) 44px;
 	width: 100%;
 
 	background-color: var(--panel-bg-clr, #fff);
-	border: 1px solid var(--border-color, #aaa);
+	border: 0;
+	border-left: 1px solid var(--border-color, #aaa);
 	border-radius: var(--border-radius, 5px);
 	box-shadow: var(--smMainShadow);
 	overflow-y: auto;
-	scroll-behavior: smooth;
+		scroll-behavior: smooth;
+
+	> div {
+		animation: settings-pane-enter 220ms cubic-bezier(.16, 1, .3, 1);
+		margin: 0 auto;
+		max-width: 900px;
+	}
 
 	.btn-toolbar {
 		position: absolute;
@@ -52,6 +80,11 @@
 		padding: 4px 8px;
 		line-height: 30px;
 	}
+}
+
+@keyframes settings-pane-enter {
+	from { opacity: 0; transform: translateY(7px); }
+	to { opacity: 1; transform: translateY(0); }
 }
 
 .firefox-drag #V-SettingsPane,

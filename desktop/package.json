@@ -1,0 +1,126 @@
+{
+  "name": "snappymail-focus-desktop",
+  "version": "0.1.0",
+  "description": "EasyMail desktop client powered by the SnappyMail mail core",
+  "author": "Eduardo Bolognini",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eduardo-bolognini/snappymail.git"
+  },
+  "main": "main.js",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "runtime:prepare": "node scripts/prepare-runtime.js",
+    "start": "npm run runtime:prepare && electron .",
+    "build": "npm run runtime:prepare && electron-builder --dir",
+    "dist": "npm run runtime:prepare && electron-builder",
+    "release": "npm run runtime:prepare && electron-builder --publish always",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "electron": "43.1.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.eduardobolognini.snappymail.focus",
+    "productName": "EasyMail",
+    "icon": "assets/icon.png",
+    "asar": true,
+    "afterPack": "scripts/after-pack.js",
+    "electronUpdaterCompatibility": ">=2.16",
+    "artifactName": "EasyMail-${version}-${os}-${arch}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "eduardo-bolognini",
+        "repo": "snappymail",
+        "private": false,
+        "releaseType": "release"
+      }
+    ],
+    "files": [
+      "main.js",
+      "ai-service.js",
+      "ai-workspace.js",
+      "auto-update.js",
+      "codex-app-server.js",
+      "desktop-persistence.js",
+      "mail-mcp-bridge.js",
+      "mail-mcp-server.js",
+      "local-backend.js",
+      "notification-permissions.js",
+      "preload.js",
+      "window-lifecycle.js",
+      "loading/**/*",
+      "node_modules/@modelcontextprotocol/**/*",
+      "node_modules/@openai/codex/**/*",
+      "node_modules/@openai/codex-*/**/*",
+      "node_modules/zod/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/@openai/codex-*/vendor/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "runtime",
+        "to": "runtime"
+      },
+      {
+        "from": "../index.php",
+        "to": "server/index.php"
+      },
+      {
+        "from": "server/include.php",
+        "to": "server/include.php"
+      },
+      {
+        "from": "../snappymail",
+        "to": "server/snappymail"
+      },
+      {
+        "from": "../plugins/login-autoconfig",
+        "to": "bootstrap-plugins/login-autoconfig"
+      },
+      {
+        "from": "domains",
+        "to": "bootstrap-domains"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon.icns",
+      "signIgnore": [
+        "Contents/Resources/server/.*",
+        "Contents/Resources/bootstrap-(domains|plugins)/.*",
+        "Contents/Resources/[^/]+\\.lproj/.*",
+        "Electron Framework\\.framework/Versions/[^/]+/Resources/.*"
+      ],
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "category": "Office",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.0.0-beta.3",
+    "@openai/codex": "^0.144.3",
+    "electron-updater": "^6.8.9",
+    "zod": "^4.4.3"
+  }
+}

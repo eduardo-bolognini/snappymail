@@ -226,6 +226,7 @@ export class AppUser extends AbstractApp {
 						SMimeUserStore.loadCertificates();
 
 						setTimeout(() => mailToHelper(SettingsGet('mailToEmail')), 500);
+						setTimeout(() => ComposePopupView.restorePendingAiCompose(), 700);
 					} else {
 						this.logout();
 						alert('Folders error: ' + getErrorMessage(0, error))

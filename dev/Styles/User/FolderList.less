@@ -7,6 +7,11 @@
 	height: 100%;
 }
 
+#V-MailFolderList {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
 .focused .b-folders a.focused {
 	background-color: var(--folders-focused-bg-color, #333);
 	border-color: #fff;
@@ -53,6 +58,23 @@
 
 	.b-toolbar {
 		color: #fff;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding-right: @rlLowMargin;
+
+		.btn {
+			box-sizing: border-box;
+			margin: 0;
+			max-width: none;
+			text-align: left;
+			width: 100%;
+		}
+
+		.buttonComposeText {
+			flex: 1 1 auto;
+			min-width: 0;
+		}
 	}
 
 	.b-footer {
@@ -196,10 +218,9 @@
 
 #rl-left .buttonCompose {
 	max-height: 2em;
-	max-width: fit-content;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	width: calc(100% - 48px);
+	width: 100%;
 }
 
 html.rl-left-panel-disabled {

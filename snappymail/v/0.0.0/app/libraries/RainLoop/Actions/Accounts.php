@@ -134,6 +134,218 @@ trait Accounts
 		return $oImapClient;
 	}
 
+	/**
+	 * Opens a dedicated mail client for the requested linked account.
+	 * It does not change the account selected in the browser session.
+	 */
+	protected function aiMailClient(string $sEmail): array
+	{
+		$oMainAccount = $this->getMainAccountFromToken();
+		$sEmail = IDN::emailToAscii(\trim($sEmail));
+		$oAccount = $oMainAccount;
+
+		if ($sEmail && $sEmail !== $oMainAccount->Email()) {
+			$aAccounts = $this->GetAccounts($oMainAccount);
+			if (!isset($aAccounts[$sEmail])) {
+				throw new ClientException(Notifications::AccountDoesNotExist);
+			}
+			$oAccount = AdditionalAccount::NewInstanceFromTokenArray($this, $aAccounts[$sEmail]);
+			if (!$oAccount) {
+				throw new ClientException(Notifications::AccountDoesNotExist);
+			}
+		}
+
+		$oMailClient = new \MailSo\Mail\MailClient;
+		$oMailClient->SetLogger($this->Logger());
+		$this->imapConnect($oAccount, false, $oMailClient->ImapClient());
+		return [$oAccount, $oMailClient];
+	}
+
+	protected function aiFolderNames(\MailSo\Mail\MailClient $oMailClient): array
+	{
+		$aFolders = array();
+		$oCollection = $oMailClient->Folders('', '*', false);
+		foreach ($oCollection as $oFolder) {
+			if ($oFolder->Selectable()) {
+				$aFolders[] = $oFolder->FullName;
+			}
+		}
+		return $aFolders;
+	}
+
+	public function DoAiMailboxes(): array
+	{
+		$oMainAccount = $this->getMainAccountFromToken();
+		$aStoredAccounts = $this->GetAccounts($oMainAccount);
+		$aAccounts = array(array(
+			'email' => $oMainAccount->Email(),
+			'name' => '',
+			'main' => true
+		));
+		foreach ($aStoredAccounts as $sEmail => $aStoredAccount) {
+			$aAccounts[] = array(
+				'email' => $sEmail,
+				'name' => (string) ($aStoredAccount['name'] ?? ''),
+				'main' => false
+			);
+		}
+
+		foreach ($aAccounts as &$aAccount) {
+			try {
+				[$oAccount, $oMailClient] = $this->aiMailClient($aAccount['email']);
+				$oFolders = $oMailClient->Folders('', '*', false);
+				$aAccount['folders'] = $oFolders->jsonSerialize()['@Collection'];
+				$oSettings = $this->SettingsProvider(true)->Load($oAccount);
+				$aAccount['systemFolders'] = array(
+					'inbox' => 'INBOX',
+					'sent' => $oSettings instanceof \RainLoop\Settings ? (string) $oSettings->GetConf('SentFolder', '') : '',
+					'drafts' => $oSettings instanceof \RainLoop\Settings ? (string) $oSettings->GetConf('DraftsFolder', '') : '',
+					'trash' => $oSettings instanceof \RainLoop\Settings ? (string) $oSettings->GetConf('TrashFolder', '') : '',
+					'spam' => $oSettings instanceof \RainLoop\Settings ? (string) $oSettings->GetConf('JunkFolder', '') : ''
+				);
+			} catch (\Throwable $oException) {
+				$aAccount['folders'] = array();
+				$aAccount['systemFolders'] = array();
+				$aAccount['error'] = $oException->getMessage();
+			}
+		}
+		unset($aAccount);
+
+		return $this->DefaultResponse($aAccounts);
+	}
+
+	public function DoAiSearchMessages(): array
+	{
+		$sAccount = (string) $this->GetActionParam('account', '');
+		$sFolder = (string) $this->GetActionParam('folder', '');
+		$sSearch = (string) $this->GetActionParam('search', '');
+		$iLimit = \min(100, \max(1, (int) $this->GetActionParam('limit', 50)));
+		$iOffset = \max(0, (int) $this->GetActionParam('offset', 0));
+		[$oAccount, $oMailClient] = $this->aiMailClient($sAccount);
+		$aFolders = $sFolder ? array($sFolder) : $this->aiFolderNames($oMailClient);
+		$aMessages = array();
+		$iTotal = 0;
+
+		foreach ($aFolders as $sFolderName) {
+			if (\count($aMessages) >= $iLimit) {
+				break;
+			}
+			try {
+				$oParams = new \MailSo\Mail\MessageListParams;
+				$oParams->sFolderName = $sFolderName;
+				$oParams->iOffset = $sFolder ? $iOffset : 0;
+				$oParams->iLimit = $iLimit - \count($aMessages);
+				$oParams->sSearch = $sSearch;
+				$oParams->sSort = 'REVERSE DATE';
+				$oParams->bUseThreads = false;
+				$oParams->bUseSort = true;
+				$oCollection = $oMailClient->MessageList($oParams);
+				$aSerialized = $oCollection->jsonSerialize();
+				$iTotal += (int) ($aSerialized['totalEmails'] ?? 0);
+				foreach ($aSerialized['@Collection'] ?? array() as $oMessage) {
+					$aMessage = $oMessage instanceof \JsonSerializable ? $oMessage->jsonSerialize() : (array) $oMessage;
+					$aMessage['account'] = $oAccount->Email();
+					$aMessages[] = $aMessage;
+				}
+			} catch (\Throwable $oException) {
+				// A single unavailable folder must not hide results from the other folders.
+			}
+		}
+
+		\usort($aMessages, static fn ($a, $b) => ($b['dateTimestamp'] ?? 0) <=> ($a['dateTimestamp'] ?? 0));
+		$aMessages = \array_slice($aMessages, 0, $iLimit);
+		return $this->DefaultResponse(array(
+			'account' => $oAccount->Email(),
+			'messages' => $aMessages,
+			'total' => $iTotal,
+			'limited' => $iTotal > \count($aMessages)
+		));
+	}
+
+	/**
+	 * Returns one date-sorted Inbox assembled from every linked account.
+	 * Dedicated clients are used so the browser session keeps its selected account.
+	 */
+	public function DoUnifiedInbox(): array
+	{
+		$oMainAccount = $this->getMainAccountFromToken();
+		$aEmails = array($oMainAccount->Email());
+		foreach ($this->GetAccounts($oMainAccount) as $sEmail => $aAccount) {
+			$aEmails[] = $sEmail;
+		}
+
+		$iOffset = \max(0, (int) $this->GetActionParam('offset', 0));
+		$iLimit = \min(100, \max(1, (int) $this->GetActionParam('limit', 20)));
+		$sSearch = (string) $this->GetActionParam('search', '');
+		$iFetchLimit = $iOffset + $iLimit;
+		$aMessages = array();
+		$aFailedAccounts = array();
+		$iTotal = 0;
+
+		foreach ($aEmails as $sEmail) {
+			try {
+				[$oAccount, $oMailClient] = $this->aiMailClient($sEmail);
+				$oParams = new \MailSo\Mail\MessageListParams;
+				$oParams->sFolderName = 'INBOX';
+				$oParams->iOffset = 0;
+				$oParams->iLimit = $iFetchLimit;
+				$oParams->sSearch = $sSearch;
+				$oParams->sSort = 'REVERSE DATE';
+				$oParams->bUseThreads = false;
+				$oParams->bUseSort = true;
+				$aSerialized = $oMailClient->MessageList($oParams)->jsonSerialize();
+				$iTotal += (int) ($aSerialized['totalEmails'] ?? 0);
+
+				foreach ($aSerialized['@Collection'] ?? array() as $oMessage) {
+					$aMessage = $oMessage instanceof \JsonSerializable ? $oMessage->jsonSerialize() : (array) $oMessage;
+					$aMessage['account'] = $oAccount->Email();
+					$aMessages[] = $aMessage;
+				}
+			} catch (\Throwable $oException) {
+				$aFailedAccounts[] = $sEmail;
+			}
+		}
+
+		\usort($aMessages, static fn ($a, $b) => ($b['dateTimestamp'] ?? 0) <=> ($a['dateTimestamp'] ?? 0));
+		$aMessages = \array_slice($aMessages, $iOffset, $iLimit);
+
+		return $this->DefaultResponse(array(
+			'@Object' => 'Collection/MessageCollection',
+			'@Collection' => $aMessages,
+			'folder' => array(
+				'name' => 'INBOX',
+				'totalEmails' => $iTotal
+			),
+			'totalEmails' => $iTotal,
+			'offset' => $iOffset,
+			'limit' => $iLimit,
+			'search' => $sSearch,
+			'limited' => $iOffset + \count($aMessages) < $iTotal,
+			'threadUid' => 0,
+			'newMessages' => array(),
+			'failedAccounts' => $aFailedAccounts
+		));
+	}
+
+	public function DoAiGetMessage(): array
+	{
+		$sAccount = (string) $this->GetActionParam('account', '');
+		$sFolder = (string) $this->GetActionParam('folder', '');
+		$iUid = (int) $this->GetActionParam('uid', 0);
+		if (!$sFolder || $iUid < 1) {
+			throw new ClientException(Notifications::CantGetMessage);
+		}
+
+		[$oAccount, $oMailClient] = $this->aiMailClient($sAccount);
+		$oMessage = $oMailClient->Message($sFolder, $iUid, true);
+		if (!$oMessage) {
+			throw new ClientException(Notifications::CantGetMessage);
+		}
+		$aMessage = $oMessage->jsonSerialize();
+		$aMessage['account'] = $oAccount->Email();
+		return $this->DefaultResponse($aMessage);
+	}
+
 	public function DoAccountUnread(): array
 	{
 		$oImapClient = $this->loadAdditionalAccountImapClient($this->GetActionParam('email', ''));
@@ -337,6 +549,35 @@ trait Accounts
 	 */
 	public function DoAccountsAndIdentities(): array
 	{
+		$oMainAccount = $this->getMainAccountFromToken();
+		$oCurrentAccount = $this->getAccountFromToken();
+		$aStoredAccounts = $this->GetAccounts($oMainAccount);
+		$aSenderIdentities = array();
+		$aSenderAccounts = array($oMainAccount->Email() => $oMainAccount);
+
+		foreach ($aStoredAccounts as $sEmail => $aStoredAccount) {
+			$oAdditionalAccount = AdditionalAccount::NewInstanceFromTokenArray($this, $aStoredAccount);
+			if ($oAdditionalAccount) {
+				$aSenderAccounts[$oAdditionalAccount->Email()] = $oAdditionalAccount;
+			}
+		}
+
+		foreach ($aSenderAccounts as $sAccountEmail => $oSenderAccount) {
+			$oSettings = $this->SettingsProvider(true)->Load($oSenderAccount);
+			$sSentFolder = $oSettings instanceof \RainLoop\Settings
+				? (string) $oSettings->GetConf('SentFolder', '')
+				: '';
+			foreach ($this->GetIdentities($oSenderAccount) as $oIdentity) {
+				$aIdentity = $oIdentity->jsonSerialize();
+				$aIdentity['accountEmail'] = IDN::emailToUtf8($sAccountEmail);
+				$aIdentity['accountName'] = (string) ($aStoredAccounts[$sAccountEmail]['name'] ?? '');
+				if (empty($aIdentity['sentFolder'])) {
+					$aIdentity['sentFolder'] = $sSentFolder;
+				}
+				$aSenderIdentities[] = $aIdentity;
+			}
+		}
+
 		// https://github.com/the-djmaze/snappymail/issues/571
 		return $this->DefaultResponse(array(
 			'Accounts' => \array_values(\array_map(function($value){
@@ -345,9 +586,10 @@ trait Accounts
 						'name' => $value['name'] ?? ''
 					];
 				},
-				$this->GetAccounts($this->getMainAccountFromToken())
+				$aStoredAccounts
 			)),
-			'Identities' => $this->GetIdentities($this->getAccountFromToken())
+			'Identities' => $this->GetIdentities($oCurrentAccount),
+			'SenderIdentities' => $aSenderIdentities
 		));
 	}
 

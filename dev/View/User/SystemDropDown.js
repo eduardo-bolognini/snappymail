@@ -1,9 +1,10 @@
 import { AppUserStore } from 'Stores/User/App';
-import { AccountUserStore } from 'Stores/User/Account';
+import { AccountUserStore, mailboxFilter, setMailboxFilter } from 'Stores/User/Account';
 //import { FolderUserStore } from 'Stores/User/Folder';
 
 import { ScopeMessageList, ScopeMessageView, ScopeSettings } from 'Common/Enums';
-import { settings } from 'Common/Links';
+import { mailbox, settings } from 'Common/Links';
+import { getFolderInboxName } from 'Common/Cache';
 
 import { showScreenPopup } from 'Knoin/Knoin';
 import { AbstractViewRight } from 'Knoin/AbstractViews';
@@ -11,8 +12,9 @@ import { AbstractViewRight } from 'Knoin/AbstractViews';
 import { KeyboardShortcutsHelpPopupView } from 'View/Popup/KeyboardShortcutsHelp';
 import { AccountPopupView } from 'View/Popup/Account';
 import { ContactsPopupView } from 'View/Popup/Contacts';
+import { DesktopAIPopupView } from 'View/Popup/DesktopAI';
 
-import { fireEvent, stopEvent, SettingsCapa, registerShortcut } from 'Common/Globals';
+import { elementById, fireEvent, stopEvent, SettingsCapa, registerShortcut } from 'Common/Globals';
 
 import Remote from 'Remote/User/Fetch';
 import { getNotification } from 'Common/Translator';
@@ -26,6 +28,7 @@ export class SystemDropDownUserView extends AbstractViewRight {
 		this.allowAccounts = SettingsCapa('AdditionalAccounts');
 
 		this.accountEmail = AccountUserStore.email;
+		this.allInboxes = AccountUserStore.allInboxes;
 
 		this.accounts = AccountUserStore;
 		this.accountsLoading = AccountUserStore.loading;
@@ -36,11 +39,11 @@ export class SystemDropDownUserView extends AbstractViewRight {
 
 		addObservablesTo(this, {
 			currentAudio: '',
-			// bootstrap dropdown
-			accountMenu: null
+			desktopAIConnected: false
 		});
 
 		this.allowContacts = AppUserStore.allowContacts();
+		this.desktopAIAvailable = Boolean(window.snappyDesktop?.ai);
 
 		addEventListener('audio.stop', () => this.currentAudio(''));
 		addEventListener('audio.start', e => this.currentAudio(e.detail));
@@ -51,13 +54,20 @@ export class SystemDropDownUserView extends AbstractViewRight {
 	}
 
 	accountClick(account, event) {
-		let email = account?.email;
-		if (email && 0 === event.button && AccountUserStore.email() != email) {
-			AccountUserStore.loading(true);
+		let email = account?.email, previousFilter = mailboxFilter();
+		if (email && (!event || 0 === event.button)) {
 			stopEvent(event);
+			setMailboxFilter(email);
+			if (AccountUserStore.email() == email) {
+				hasher.setHash(mailbox(getFolderInboxName()));
+				rl.app.messageList.reload(true, true);
+				return true;
+			}
+			AccountUserStore.loading(true);
 			Remote.request('AccountSwitch',
 				(iError/*, oData*/) => {
 					if (iError) {
+						setMailboxFilter(previousFilter);
 						AccountUserStore.loading(false);
 						alert('Account error: ' + getNotification(iError).replace('%EMAIL%', email));
 						if (account.isAdditional()) {
@@ -86,6 +96,18 @@ export class SystemDropDownUserView extends AbstractViewRight {
 		return true;
 	}
 
+	allInboxesClick(view, event) {
+		stopEvent(event);
+		setMailboxFilter('');
+		hasher.setHash(mailbox(getFolderInboxName()));
+		rl.app.messageList.reload(true, true);
+		return true;
+	}
+
+	accountInitial(account) {
+		return (account?.label?.() || account?.email || '?').trim().charAt(0).toUpperCase();
+	}
+
 	accountName() {
 		const email = AccountUserStore.email();
 		return AccountUserStore.find(account => account.email == email)?.label() || IDN.toUnicode(email);
@@ -107,17 +129,34 @@ export class SystemDropDownUserView extends AbstractViewRight {
 		this.allowContacts && showScreenPopup(ContactsPopupView);
 	}
 
+	smartContactsClick() {
+		this.desktopAIAvailable && showScreenPopup(DesktopAIPopupView, ['contacts']);
+	}
+
+	desktopAIClick() {
+		this.desktopAIAvailable && showScreenPopup(DesktopAIPopupView);
+	}
+
+	async refreshDesktopAIStatus() {
+		if (!this.desktopAIAvailable) return;
+		try {
+			const status = await window.snappyDesktop.ai.status();
+			this.desktopAIConnected(Boolean(status?.connected));
+		} catch {
+			this.desktopAIConnected(false);
+		}
+	}
+
 	logoutClick() {
+		setMailboxFilter('');
 		rl.app.logout();
 	}
 
-	onBuild() {
-		registerShortcut('m', '', [ScopeMessageList, ScopeMessageView, ScopeSettings], () => {
-			if (!this.viewModelDom.hidden) {
-//				exitFullscreen();
-				this.accountMenu().ddBtn.toggle();
-				return false;
-			}
+	onBuild(dom) {
+		elementById('rl-left')?.prepend(dom);
+		this.refreshDesktopAIStatus();
+		window.snappyDesktop?.ai.onEvent(event => {
+			if ('auth' === event.type) this.refreshDesktopAIStatus();
 		});
 
 		// shortcuts help

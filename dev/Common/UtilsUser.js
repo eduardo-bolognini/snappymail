@@ -15,7 +15,7 @@ import { attachmentDownload } from 'Common/Links';
 import { AccountModel } from 'Model/Account';
 import { IdentityModel } from 'Model/Identity';
 import { AccountUserStore } from 'Stores/User/Account';
-import { IdentityUserStore } from 'Stores/User/Identity';
+import { IdentityUserStore, SenderIdentityUserStore } from 'Stores/User/Identity';
 import { isArray } from 'Common/Utils';
 
 import { showScreenPopup } from 'Knoin/Knoin';
@@ -54,6 +54,15 @@ loadAccountsAndIdentities = () => {
 				? items.map(identityData => IdentityModel.reviveFromJson(identityData))
 				: []
 			);
+
+			items = oData.Result.SenderIdentities;
+			const senderIdentities = isArray(items)
+				? items.map(identityData => IdentityModel.reviveFromJson(identityData)).filter(Boolean)
+				: IdentityUserStore().map(identity => {
+					identity.accountEmail = SettingsGet('email') || SettingsGet('mainEmail');
+					return identity;
+				});
+			SenderIdentityUserStore(senderIdentities);
 
 			// Invoke "Update Identity" pop up right after login
 			// https://github.com/the-djmaze/snappymail/issues/1689
@@ -337,7 +346,11 @@ populateMessageBody = (oMessage, popup) => {
 			viewMessage(oMessage, popup);
 		} else {
 			popup || MessageUserStore.loading(true);
-			Remote.message((iError, oData/*, bCached*/) => {
+			const loadMessage = callback => oMessage.account
+				? Remote.accountMessage(callback, oMessage.account, oMessage.folder, oMessage.uid)
+				: Remote.message(callback, oMessage.folder, oMessage.uid);
+
+			loadMessage((iError, oData/*, bCached*/) => {
 				if (iError) {
 					if (Notifications.RequestAborted !== iError && !popup) {
 						MessageUserStore.message(null);
@@ -365,7 +378,7 @@ populateMessageBody = (oMessage, popup) => {
 					}
 				}
 				popup || MessageUserStore.loading(false);
-			}, oMessage.folder, oMessage.uid);
+			});
 		}
 	}
 };

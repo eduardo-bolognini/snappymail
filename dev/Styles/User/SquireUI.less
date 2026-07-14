@@ -1,12 +1,66 @@
 
 .squire-toolbar {
-	border-bottom: 1px solid #b6b6b6;
-	min-height: 28px;
-	overflow-x: auto;
-	overflow-y: hidden;
-	padding: 2px;
+	align-items: center;
+	background: var(--dialog-bg-clr, #fff);
+	border-bottom: 1px solid var(--border-color, #e1dfdb);
+	box-sizing: border-box;
+	display: flex;
+	gap: 8px;
+	min-height: 44px;
+	overflow: visible;
+	padding: 6px 12px;
 	position: relative;
-	white-space: nowrap;
+	z-index: 8;
+}
+
+.squire-toolbar-primary {
+	align-items: center;
+	display: flex;
+	gap: 5px;
+	min-width: 0;
+
+	.btn-group {
+		align-items: center;
+		border-right: 1px solid #e8e5e0;
+		display: inline-flex;
+		gap: 2px;
+		padding-right: 5px;
+	}
+
+	.btn-group:last-child {
+		border-right: 0;
+		padding-right: 0;
+	}
+
+	button {
+		align-items: center;
+		background: transparent;
+		border: 0;
+		border-radius: 5px;
+		box-shadow: none;
+		color: #5f5a55;
+		display: inline-flex;
+		height: 32px;
+		justify-content: center;
+		padding: 0;
+		transition: background-color 120ms ease, color 120ms ease;
+		width: 32px;
+
+		&:hover:not(:disabled) {
+			background: #f1f0ed;
+			color: #191918;
+		}
+
+		&.active {
+			background: #fff0e9;
+			color: #d83d00;
+		}
+
+		&:disabled {
+			cursor: default;
+			opacity: .28;
+		}
+	}
 }
 
 .squire-toolbar input[type="color"] {
@@ -18,17 +72,19 @@
 }
 
 .squire-toolbar select {
-	font-size: 85%;
-	padding: 4px 1.5em 4px 6px;
+	box-sizing: border-box;
+	font-size: 12px;
+	height: 34px;
+	padding: 4px 2em 4px 8px;
 	text-align: var(--left, left);
 	vertical-align: middle;
-	width: 7em;
+	width: 100%;
 }
 .squire-toolbar select[data-action="fontSize"] {
-	width: 5em;
+	width: 100%;
 }
 .squire-toolbar button {
-	font-family: snappymail, var(--fontSans)
+	font-family: var(--fontSans);
 }
 .squire-toolbar button[data-action="bold"] {
 	font-weight: bold;
@@ -36,14 +92,121 @@
 .squire-toolbar button[data-action="italic"] {
 	font-style: italic;
 }
-/*
-.squire-toolbar button[data-action="underline"] {
-	text-decoration: underline;
+.squire-toolbar-more {
+	margin-left: auto;
+	position: relative;
+
+	> summary {
+		list-style: none;
+	}
+
+	> summary::-webkit-details-marker {
+		display: none;
+	}
+
+	&[open] .squire-toolbar-more-toggle {
+		background: #f1f0ed;
+		color: #191918;
+	}
+
+	&[open] .squire-toolbar-more-toggle .g-icon--chevron-down {
+		transform: rotate(180deg);
+	}
 }
-.squire-toolbar button[data-action="strikethrough"] {
-	text-decoration: line-through;
+
+.squire-toolbar-more-toggle {
+	align-items: center;
+	border-radius: 5px;
+	color: #5f5a55;
+	cursor: pointer;
+	display: inline-flex;
+	font-size: 12px;
+	font-weight: 650;
+	gap: 7px;
+	height: 32px;
+	padding: 0 9px;
+	transition: background-color 120ms ease, color 120ms ease;
+	user-select: none;
+
+	&:hover {
+		background: #f1f0ed;
+		color: #191918;
+	}
+
+	.g-icon--chevron-down {
+		font-size: 11px;
+		transition: transform 150ms ease;
+	}
 }
-*/
+
+.squire-toolbar-more-panel {
+	animation: squire-menu-enter 150ms cubic-bezier(.16, 1, .3, 1);
+	background: #fff;
+	border: 1px solid #dedbd6;
+	border-radius: 7px;
+	box-shadow: 0 14px 34px rgba(34, 30, 27, .14);
+	box-sizing: border-box;
+	display: grid;
+	gap: 8px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	max-height: min(56vh, 470px);
+	overflow-y: auto;
+	padding: 10px;
+	position: absolute;
+	right: 0;
+	top: calc(100% + 7px);
+	width: 330px;
+
+	.btn-group {
+		align-content: start;
+		display: grid;
+		gap: 4px;
+	}
+
+	.btn-group + .btn-group {
+		border-top: 1px solid #efede9;
+		padding-top: 8px;
+	}
+
+	button {
+		align-items: center;
+		background: transparent;
+		border: 0;
+		border-radius: 5px;
+		box-shadow: none;
+		color: #4f4a46;
+		display: flex;
+		font-size: 12px;
+		gap: 9px;
+		justify-content: flex-start;
+		min-height: 34px;
+		padding: 5px 8px;
+		text-align: left;
+		width: 100%;
+
+		&::after {
+			content: attr(data-label);
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		&:hover:not(:disabled),
+		&.active {
+			background: #fff0e9;
+			color: #a93200;
+		}
+
+		&:disabled {
+			opacity: .35;
+		}
+	}
+}
+
+@keyframes squire-menu-enter {
+	from { opacity: 0; transform: translateY(-4px) scale(.985); }
+	to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .squire-wysiwyg, .squire-plain {
 	height: 100%;
@@ -148,12 +311,22 @@ Secondly, we can't rely on MUA's what to do with :empty
 
 .squire-mode-source .squire-wysiwyg,
 .squire-mode-wysiwyg .squire-plain,
-.squire-mode-plain .squire-wysiwyg,
-.squire-mode-plain .btn-group:not(#squire-toolgroup-mode) {
+.squire-mode-plain .squire-wysiwyg {
+	display: none;
+}
+
+.squire-mode-plain .squire-toolbar-primary,
+.squire-mode-plain .squire-toolbar-more-panel .btn-group:not(#squire-toolgroup-mode) {
 	display: none;
 }
 
 .squire-mode-source .squire-plain,
 .squire-mode-plain .squire-plain {
 	display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.squire-toolbar-more-panel {
+		animation: none;
+	}
 }

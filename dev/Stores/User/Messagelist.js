@@ -54,6 +54,7 @@ addObservablesTo(MessagelistUserStore, {
 	page: 1,
 	pageBeforeThread: 1,
 	error: '',
+	warning: '',
 //	folder: '',
 
 	endHash: '',
@@ -70,6 +71,9 @@ addObservablesTo(MessagelistUserStore, {
 // Computed Observables
 
 addComputablesTo(MessagelistUserStore, {
+	unifiedInbox: () => AccountUserStore.allInboxes()
+		&& getFolderInboxName() === FolderUserStore.currentFolderFullName(),
+
 	isLoading: () => {
 		const value = MessagelistUserStore.loading() | MessagelistUserStore.isIncomplete();
 		$htmlCL.toggle('list-loading', value);
@@ -180,7 +184,7 @@ MessagelistUserStore.canSelect = () =>
 	&& SettingsUserStore.usePreviewPane();
 //	&& !SettingsUserStore.showNextMessage();
 
-let prevFolderName;
+let prevFolderName, reloadRequestId = 0;
 
 /**
  * @param {boolean=} bDropPagePosition = false
@@ -188,7 +192,12 @@ let prevFolderName;
  */
 MessagelistUserStore.reload = (bDropPagePosition = false, bDropCurrentFolderCache = false) => {
 	let iOffset = (MessagelistUserStore.page() - 1) * SettingsUserStore.messagesPerPage(),
-		folderName = FolderUserStore.currentFolderFullName();
+		folderName = FolderUserStore.currentFolderFullName(),
+		isUnifiedInbox = MessagelistUserStore.unifiedInbox(),
+		requestId = ++reloadRequestId;
+
+	Remote.abort('UnifiedInbox', 'reload');
+	Remote.abort('MessageList', 'reload');
 //		folderName = FolderUserStore.currentFolder() ? self.currentFolder().fullName : '');
 
 	if (bDropCurrentFolderCache) {
@@ -210,8 +219,9 @@ MessagelistUserStore.reload = (bDropPagePosition = false, bDropCurrentFolderCach
 		);
 	}
 
-	if (prevFolderName != folderName) {
-		prevFolderName = folderName;
+	const listKey = (isUnifiedInbox ? 'all:' : 'account:') + folderName;
+	if (prevFolderName != listKey) {
+		prevFolderName = listKey;
 		MessagelistUserStore([]);
 	}
 
@@ -230,7 +240,9 @@ MessagelistUserStore.reload = (bDropPagePosition = false, bDropCurrentFolderCach
 			search: MessagelistUserStore.listSearch()
 		},
 		fCallback = (iError, oData, bCached) => {
-			let error = '';
+			if (requestId !== reloadRequestId) return;
+
+			let error = '', warning = '';
 			if (iError) {
 				if ('reload' != oData?.name) {
 					error = getNotification(iError);
@@ -243,11 +255,16 @@ MessagelistUserStore.reload = (bDropPagePosition = false, bDropCurrentFolderCach
 			} else {
 				const collection = MessageCollectionModel.reviveFromJson(oData.Result, bCached);
 				if (collection) {
+					if (isUnifiedInbox && collection.failedAccounts?.length) {
+						warning = i18n('MESSAGE_LIST/UNIFIED_PARTIAL_WARNING', {
+							COUNT: collection.failedAccounts.length
+						});
+					}
 					const
 						folderInfo = collection.folder,
 						folder = getFolderFromCacheList(folderInfo.name);
 					collection.folder = folderInfo.name;
-					if (folder && !bCached) {
+					if (folder && !bCached && !isUnifiedInbox) {
 //						folder.revivePropertiesFromJson(result);
 						folder.expires = Date.now();
 						folder.uidNext = folderInfo.uidNext;
@@ -316,27 +333,40 @@ MessagelistUserStore.reload = (bDropPagePosition = false, bDropCurrentFolderCach
 				MessagelistUserStore.loading(false);
 			}
 			MessagelistUserStore.error(error);
+			MessagelistUserStore.warning(warning);
 		};
 
-	if (AppUserStore.threadsAllowed() && SettingsUserStore.useThreads()) {
+	if (!isUnifiedInbox && AppUserStore.threadsAllowed() && SettingsUserStore.useThreads()) {
 		params.useThreads = 1;
 		params.threadAlgorithm = SettingsUserStore.threadAlgorithm();
 		params.threadUid = MessagelistUserStore.threadUid();
 	} else {
 		params.threadUid = 0;
 	}
-	if (folderETag) {
+	if (!isUnifiedInbox && folderETag) {
 		params.hash = folderETag + '-' + SettingsGet('accountHash');
 		sGetAdd = 'MessageList/' + SUB_QUERY_PREFIX + '/' + b64EncodeJSONSafe(params);
 		params = {};
 	}
 
-	Remote.abort('MessageList', 'reload').request('MessageList',
-		fCallback,
-		params,
-		60000, // 60 seconds before aborting
-		sGetAdd
-	);
+	if (isUnifiedInbox) {
+		Remote.request('UnifiedInbox',
+			fCallback,
+			{
+				offset: iOffset,
+				limit: SettingsUserStore.messagesPerPage(),
+				search: MessagelistUserStore.listSearch()
+			},
+			60000
+		);
+	} else {
+		Remote.request('MessageList',
+			fCallback,
+			params,
+			60000, // 60 seconds before aborting
+			sGetAdd
+		);
+	}
 };
 
 /**
@@ -345,6 +375,8 @@ MessagelistUserStore.reload = (bDropPagePosition = false, bDropCurrentFolderCach
  * @param {Array=} messages = null
  */
 MessagelistUserStore.setAction = (sFolderFullName, iSetAction, messages) => {
+	if (MessagelistUserStore.unifiedInbox()) return;
+
 	messages = messages || MessagelistUserStore.listChecked();
 
 	let folder,
@@ -437,6 +469,8 @@ MessagelistUserStore.setAction = (sFolderFullName, iSetAction, messages) => {
 MessagelistUserStore.moveMessages = (
 	fromFolderFullName, oUids, toFolderFullName = '', copy = false
 ) => {
+	if (MessagelistUserStore.unifiedInbox()) return;
+
 	const fromFolder = getFolderFromCacheList(fromFolderFullName);
 
 	if (!fromFolder || !oUids?.size) return;

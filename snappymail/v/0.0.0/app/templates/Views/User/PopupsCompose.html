@@ -1,103 +1,78 @@
 <header class="g-ui-user-select-none" data-bind="css: {loading: saving() || sending()}">
-	<a class="btn" data-bind="command: sendCommand, tooltipErrorTip: sendErrorDesc, css: {'btn-success': sendButtonSuccess, 'btn-danger': sendError, 'btn-warning': sendSuccessButSaveError }">
-		<i data-bind="css: {'icon-paper-plane': !sending(), 'icon-spinner': sending()}"></i>
+	<a class="btn" data-bind="visible: !preSendActive(), command: sendCommand, tooltipErrorTip: sendErrorDesc, css: {'btn-success': sendButtonSuccess, 'btn-danger': sendError, 'btn-warning': sendSuccessButSaveError }">
+		<span class="g-icon g-icon--paper-plane" data-bind="visible: !sending()" aria-hidden="true"></span>
+		<i class="icon-spinner" data-bind="visible: sending" aria-hidden="true"></i>
 		<span class="hide-mobile" data-i18n="COMPOSE/BUTTON_SEND"></span>
 	</a>
+	<span class="btn pre-send-countdown" data-bind="visible: preSendActive" aria-live="polite">
+		<span class="g-icon g-icon--sparkles" aria-hidden="true"></span>
+		<span data-bind="text: preSendLabel"></span>
+	</span>
+	<a class="btn pre-send-cancel" data-bind="visible: preSendActive, click: cancelPreSend" data-i18n="[title]COMPOSE/AI_PRE_SEND_CANCEL">
+		<span class="g-icon g-icon--xmark" aria-hidden="true"></span>
+		<span class="hide-mobile" data-i18n="COMPOSE/AI_PRE_SEND_CANCEL"></span>
+	</a>
 	<a class="btn button-save" data-bind="command: saveCommand, tooltipErrorTip: savedErrorDesc, css: {'btn-danger': savedError }">
-		<i class="fontastic" data-bind="css: {'icon-spinner': saving()}">💾</i>
+		<span class="g-icon g-icon--floppy-disk" data-bind="visible: !saving()" aria-hidden="true"></span>
+		<i class="icon-spinner" data-bind="visible: saving" aria-hidden="true"></i>
 		<span class="hide-mobile" data-i18n="GLOBAL/SAVE"></span>
 	</a>
 
-	<a class="btn btn-danger button-delete fontastic" data-bind="command: deleteCommand">🗑</a>
+	<a class="btn btn-danger button-delete" data-bind="command: deleteCommand"><span class="g-icon g-icon--trash-bin" aria-hidden="true"></span></a>
 	<span class="saved-text hide-mobile" data-bind="text: savedTimeText"></span>
 
-	<div class="pull-right">
-		<a class="btn hide-mobile" data-i18n="GLOBAL/BCC" data-bind="visible: !showBcc(), toggle: showBcc"></a>
-		<a class="btn hide-mobile" data-i18n="GLOBAL/CC" data-bind="visible: !showCc(), toggle: showCc"></a>
-		<a class="btn fontastic" data-bind="visible: allowContacts, command: contactsCommand" data-i18n="[title]GLOBAL/CONTACTS">📇</a>
-		<div class="btn-group dropdown" data-bind="registerBootstrapDropdown: true" style="display:inline-block;vertical-align:top">
-			<a class="btn dropdown-toggle fontastic">☰</a>
-			<menu class="dropdown-menu right-edge" role="menu">
-				<li data-bind="toggle: showBcc">
-					<a>
-						<i class="fontastic" data-bind="text: showBcc() ? '☑' : '☐'"></i>
-						<span data-i18n="GLOBAL/BCC"></span>
-					</a>
-				</li>
-				<li data-bind="toggle: showCc">
-					<a>
-						<i class="fontastic" data-bind="text: showCc() ? '☑' : '☐'"></i>
-						<span data-i18n="GLOBAL/CC"></span>
-					</a>
-				</li>
-				<li data-bind="toggle: showReplyTo">
-					<a>
-						<i class="fontastic" data-bind="text: showReplyTo() ? '☑' : '☐'"></i>
-						<span data-i18n="GLOBAL/REPLY_TO"></span>
-					</a>
-				</li>
-				<li data-bind="toggle: requestReadReceipt">
-					<a>
-						<i class="fontastic" data-bind="text: requestReadReceipt() ? '☑' : '☐'"></i>
-						<span data-i18n="COMPOSE/BUTTON_REQUEST_READ_RECEIPT"></span>
-					</a>
-				</li>
-				<li data-bind="toggle: requestDsn">
-					<a>
-						<i class="fontastic" data-bind="text: requestDsn() ? '☑' : '☐'"></i>
-						<span data-i18n="COMPOSE/BUTTON_REQUEST_DSN"></span>
-					</a>
-				</li>
-				<li data-bind="toggle: requireTLS">
-					<a>
-						<i class="fontastic" data-bind="text: requireTLS() ? '☑' : '☐'"></i>
-						<span data-i18n="COMPOSE/BUTTON_REQUIRE_TLS"></span>
-					</a>
-				</li>
-				<li data-bind="toggle: markAsImportant">
-					<a>
-						<i class="fontastic" data-bind="text: markAsImportant() ? '☑' : '☐'"></i>
-						<span data-i18n="COMPOSE/BUTTON_MARK_AS_IMPORTANT"></span>
-					</a>
-				</li>
-				<li data-bind="toggle: doSign, visible: canSign">
-					<a data-bind="attr:{title: signOptionsText}">
-						<i class="fontastic" data-bind="text: doSign() ? '☑' : '☐'"></i>
-						<span data-icon="✍" data-i18n="CRYPTO/SIGN"></span>
-					</a>
-				</li>
-				<li data-bind="toggle: doEncrypt, visible: canEncrypt">
-					<a data-bind="attr:{title: encryptOptionsText}">
-						<i class="fontastic" data-bind="text: doEncrypt() || 'mailvelope' == viewArea() ? '☑' : '☐'"></i>
-						<span data-icon="🔒" data-i18n="CRYPTO/ENCRYPT"></span>
-					</a>
-				</li>
-			</menu>
-		</div>
-		<a class="minimize-custom" data-bind="click: skipCommand" data-i18n="[title]COMPOSE/BUTTON_MINIMIZE"></a>
-		<a class="close" data-bind="click: doClose" data-i18n="[title]GLOBAL/CANCEL">×</a>
+	<div class="pull-right compose-window-actions">
+		<button type="button" class="compose-window-button" data-bind="visible: allowContacts, command: contactsCommand" data-i18n="[title]GLOBAL/CONTACTS">
+			<span class="g-icon g-icon--persons" aria-hidden="true"></span>
+		</button>
+		<button type="button" class="compose-window-button" data-bind="click: minimizeCommand" data-i18n="[title]COMPOSE/BUTTON_MINIMIZE">
+			<span class="g-icon g-icon--minus" aria-hidden="true"></span>
+		</button>
+		<button type="button" class="compose-window-button compose-window-close" data-bind="click: doClose" data-i18n="[title]GLOBAL/CANCEL">
+			<span class="g-icon g-icon--xmark" aria-hidden="true"></span>
+		</button>
 	</div>
 </header>
 <div class="modal-body">
-	<div class="b-header g-ui-user-select-none">
+	<main class="compose-editor-pane">
+		<section class="pre-send-alert" data-bind="visible: preSendAlert, with: preSendAlert" role="alert">
+			<span class="pre-send-alert-icon g-icon g-icon--circle-exclamation" aria-hidden="true"></span>
+			<div class="pre-send-alert-content">
+				<strong data-bind="text: title"></strong>
+				<p data-bind="text: summary"></p>
+				<ul data-bind="foreach: issues">
+					<li><strong data-bind="text: title"></strong><span data-bind="text: detail"></span></li>
+				</ul>
+				<div class="pre-send-alert-actions">
+					<button type="button" class="btn" data-bind="click: function () { $root.dismissPreSendAlert(); }" data-i18n="COMPOSE/AI_PRE_SEND_EDIT"></button>
+					<button type="button" class="btn" data-bind="visible: 'issue' !== type, click: function () { $root.retryPreSendReview(); }" data-i18n="COMPOSE/AI_PRE_SEND_RETRY"></button>
+					<button type="button" class="btn pre-send-force" data-bind="click: function () { $root.forceSendAfterReview(); }" data-i18n="COMPOSE/AI_PRE_SEND_SEND_ANYWAY"></button>
+				</div>
+			</div>
+		</section>
+		<div class="b-header g-ui-user-select-none">
 		<table>
 			<tr>
 				<td data-i18n="GLOBAL/FROM"></td>
 				<td>
-					<!-- ko if: allowIdentities -->
-					<input type="text" data-bind="textInput: from" style="width:calc(100% - 2em)">
-					<!-- /ko -->
-					<span class="e-identity" data-bind="hidden: allowIdentities, text: from"></span>
-					<!-- ko if: 1 < identitiesOptions().length -->
-					<div class="dropdown" style="display:inline-block" data-bind="registerBootstrapDropdown: true, initDom: identitiesMenu">
-						<a class="dropdown-toggle" href="#" tabindex="-1" id="identity-toggle" role="button"></a>
-						<menu class="dropdown-menu right-edge" role="menu" aria-labelledby="identity-toggle" data-bind="foreach: identitiesOptions">
-							<li role="presentation">
-								<a tabindex="-1" href="#" data-bind="click: function (oIdentity) { $root.selectIdentity(oIdentity); return true; }, text: optText"></a>
-							</li>
-						</menu>
+					<div class="compose-from-field">
+						<!-- ko if: allowIdentities -->
+						<input type="text" data-bind="textInput: from, event: {keydown: fromAiKeydown}">
+						<!-- /ko -->
+						<span class="e-identity" data-bind="visible: !allowIdentities, text: from"></span>
+						<!-- ko if: 1 < identitiesOptions().length -->
+						<div class="dropdown compose-identity-picker" data-bind="registerBootstrapDropdown: true, initDom: identitiesMenu">
+							<button type="button" class="dropdown-toggle compose-identity-toggle" id="identity-toggle" data-i18n="[title]GLOBAL/FROM">
+								<span class="g-icon g-icon--chevron-down" aria-hidden="true"></span>
+							</button>
+							<menu class="dropdown-menu right-edge compose-identity-menu" role="menu" aria-labelledby="identity-toggle" data-bind="foreach: identitiesOptions">
+								<li role="presentation">
+									<a tabindex="-1" href="#" data-bind="click: function (oIdentity) { $root.selectIdentity(oIdentity); return true; }, text: optText"></a>
+								</li>
+							</menu>
+						</div>
+						<!-- /ko -->
 					</div>
-					<!-- /ko -->
 				</td>
 			</tr>
 			<tr>
@@ -106,19 +81,85 @@
 						data-i18n="GLOBAL/TO"></label>
 				</td>
 				<td>
-					<input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-bind="emailsTags: to, autoCompleteSource: emailsSource">
+					<div class="compose-recipient-field">
+						<div class="compose-recipient-input">
+							<input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-bind="emailsTags: to, autoCompleteSource: emailsSource, emailCommand: toAiCommand">
+						</div>
+						<div class="compose-delivery-options" role="group">
+						<button type="button" class="compose-option-toggle" data-bind="toggle: showCc, css: {'is-active': showCc}" data-i18n="[title]GLOBAL/CC">
+							<span data-i18n="GLOBAL/CC"></span>
+						</button>
+							<button type="button" class="compose-option-toggle" data-bind="toggle: showBcc, css: {'is-active': showBcc}" data-i18n="[title]GLOBAL/BCC">
+								<span data-i18n="GLOBAL/BCC"></span>
+							</button>
+							<button type="button" class="compose-option-toggle compose-option-toggle--icon"
+								data-bind="toggle: requestReadReceipt, css: {'is-active': requestReadReceipt}, attr: {'aria-pressed': requestReadReceipt}"
+								data-i18n="[title]COMPOSE/BUTTON_REQUEST_READ_RECEIPT">
+								<span class="g-icon g-icon--envelope" aria-hidden="true"></span>
+								<span class="compose-option-accessible-label" data-i18n="COMPOSE/BUTTON_REQUEST_READ_RECEIPT"></span>
+							</button>
+							<button type="button" class="compose-option-toggle compose-option-toggle--icon"
+								data-bind="toggle: markAsImportant, css: {'is-active': markAsImportant}, attr: {'aria-pressed': markAsImportant}"
+								data-i18n="[title]COMPOSE/BUTTON_MARK_AS_IMPORTANT">
+								<span class="g-icon g-icon--circle-exclamation" aria-hidden="true"></span>
+								<span class="compose-option-accessible-label" data-i18n="COMPOSE/BUTTON_MARK_AS_IMPORTANT"></span>
+							</button>
+							<div class="dropdown compose-options-menu" data-bind="registerBootstrapDropdown: true">
+								<button type="button" class="dropdown-toggle compose-options-trigger" data-i18n="[title]GLOBAL/MORE">
+									<span class="g-icon g-icon--ellipsis-vertical" aria-hidden="true"></span>
+								</button>
+								<menu class="dropdown-menu right-edge compose-options-dropdown" role="menu">
+								<li data-bind="css: {'is-active': showReplyTo}">
+									<button type="button" data-bind="toggle: showReplyTo">
+										<span class="g-icon g-icon--arrow-shape-turn-up-left" aria-hidden="true"></span>
+										<span data-i18n="GLOBAL/REPLY_TO"></span>
+										<span class="g-icon g-icon--check compose-option-check" data-bind="visible: showReplyTo" aria-hidden="true"></span>
+									</button>
+								</li>
+								<li data-bind="css: {'is-active': requestDsn}">
+									<button type="button" data-bind="toggle: requestDsn">
+										<span class="g-icon g-icon--circle-check" aria-hidden="true"></span>
+										<span data-i18n="COMPOSE/BUTTON_REQUEST_DSN"></span>
+										<span class="g-icon g-icon--check compose-option-check" data-bind="visible: requestDsn" aria-hidden="true"></span>
+									</button>
+								</li>
+								<li data-bind="css: {'is-active': requireTLS}">
+									<button type="button" data-bind="toggle: requireTLS">
+										<span class="g-icon g-icon--shield-check" aria-hidden="true"></span>
+										<span data-i18n="COMPOSE/BUTTON_REQUIRE_TLS"></span>
+										<span class="g-icon g-icon--check compose-option-check" data-bind="visible: requireTLS" aria-hidden="true"></span>
+									</button>
+								</li>
+								<li data-bind="visible: canSign, css: {'is-active': doSign}">
+									<button type="button" data-bind="toggle: doSign, attr:{title: signOptionsText}">
+										<span class="g-icon g-icon--pencil" aria-hidden="true"></span>
+										<span data-i18n="CRYPTO/SIGN"></span>
+										<span class="g-icon g-icon--check compose-option-check" data-bind="visible: doSign" aria-hidden="true"></span>
+									</button>
+								</li>
+								<li data-bind="visible: canEncrypt, css: {'is-active': doEncrypt() || 'mailvelope' == viewArea()}">
+									<button type="button" data-bind="toggle: doEncrypt, attr:{title: encryptOptionsText}">
+										<span class="g-icon g-icon--lock" aria-hidden="true"></span>
+										<span data-i18n="CRYPTO/ENCRYPT"></span>
+										<span class="g-icon g-icon--check compose-option-check" data-bind="visible: doEncrypt() || 'mailvelope' == viewArea()" aria-hidden="true"></span>
+									</button>
+								</li>
+								</menu>
+							</div>
+						</div>
+					</div>
 				</td>
 			</tr>
 			<tr class="cc-row" data-bind="visible: showCc">
 				<td data-i18n="GLOBAL/CC"></td>
 				<td>
-					<input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-bind="emailsTags: cc, autoCompleteSource: emailsSource">
+					<input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-bind="emailsTags: cc, autoCompleteSource: emailsSource, emailCommand: ccAiCommand">
 				</td>
 			</tr>
 			<tr class="bcc-row" data-bind="visible: showBcc">
 				<td data-i18n="GLOBAL/BCC"></td>
 				<td>
-					<input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-bind="emailsTags: bcc, autoCompleteSource: emailsSource">
+					<input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-bind="emailsTags: bcc, autoCompleteSource: emailsSource, emailCommand: bccAiCommand">
 				</td>
 			</tr>
 			<tr class="reply-to-row" data-bind="visible: showReplyTo">
@@ -134,23 +175,6 @@
 				</td>
 			</tr>
 		</table>
-		<div style="display:flex">
-			<div class="btn-group" style="flex-grow:1"></div>
-			<div class="btn-group">
-				<a class="btn fontastic" data-bind="toggle: doSign, visible: canSign, css: {'btn-success': doSign()}" data-i18n="[title]CRYPTO/SIGN">
-					✍
-				</a>
-				<a class="btn fontastic" data-bind="toggle: doEncrypt, visible: canEncrypt, css: {'btn-success': doEncrypt() || 'mailvelope' == viewArea()}" data-i18n="[title]CRYPTO/ENCRYPT">
-					🔒
-				</a>
-			</div>
-			<div class="btn-group">
-				<a class="btn fontastic" style="padding-left: 10px; padding-right: 10px;" id="composeUploadButton"
-					data-bind="visible: addAttachmentEnabled()" data-i18n="[title]COMPOSE/ATTACH_FILES">
-					⁺📎
-				</a>
-			</div>
-		</div>
 	</div>
 
 	<div class="tabs">
@@ -160,11 +184,22 @@
 			aria-selected="true"
 			aria-controls="panel1"
 			tabindex="0">
-			<i class="icon-file-text"></i>
+			<span class="g-icon g-icon--file" aria-hidden="true"></span>
 			<span data-i18n="GLOBAL/TEXT"></span>
 		</label>
 		<div class="tab-content" role="tabpanel" aria-hidden="false" style="grid-column-end:4">
-			<div class="textAreaParent" data-bind="initDom: editorArea, attr:{spellcheck:allowSpellcheck()?'true':'false'}"></div>
+			<div class="ai-editor-toolbar">
+				<button type="button" class="compose-attachment-button" id="composeUploadButton"
+					data-bind="visible: addAttachmentEnabled()" data-i18n="[title]COMPOSE/ATTACH_FILES">
+					<span class="g-icon g-icon--paperclip" aria-hidden="true"></span>
+					<span data-i18n="GLOBAL/ATTACHMENTS"></span>
+				</button>
+				<button type="button" class="ai-rewrite-button" data-bind="click: rewriteWithAi, disable: aiBusy() || aiChatBusy()" data-i18n="[title]COMPOSE/AI_REWRITE_DESC">
+					<span class="g-icon g-icon--sparkles ai-mark" aria-hidden="true"></span>
+					<span data-i18n="COMPOSE/AI_REWRITE"></span>
+				</button>
+			</div>
+			<div class="textAreaParent" data-bind="initDom: editorArea, attr:{spellcheck:allowSpellcheck()?'true':'false'}, css: {'ai-writing': aiBusy() || aiChatBusy(), 'ai-applied': aiJustApplied}"></div>
 		</div>
 
 		<input type="radio" name="tabs" value="attachments" id="tab-attachments" data-bind="checked: viewArea">
@@ -177,7 +212,8 @@
 				css: { 'btn-danger': attachmentsInErrorCount() },
 				tooltipErrorTip: attachmentsErrorTooltip">
 			<b data-bind="visible: attachmentsCount, text: attachmentsCount"></b>
-			<i data-bind="css: { 'icon-attachment': !attachmentsInProcessCount(), 'icon-spinner': attachmentsInProcessCount()}"></i>
+				<span class="g-icon g-icon--paperclip" data-bind="visible: !attachmentsInProcessCount()" aria-hidden="true"></span>
+				<i class="icon-spinner" data-bind="visible: attachmentsInProcessCount" aria-hidden="true"></i>
 			<span data-i18n="GLOBAL/ATTACHMENTS"></span>
 		</label>
 		<div class="tab-content attachmentAreaParent" role="tabpanel" aria-hidden="true" style="grid-column-end:4">
@@ -213,4 +249,50 @@
 		</label>
 		<div class="tab-content textAreaParent" id="mailvelope-editor" role="tabpanel" aria-hidden="true" style="grid-column-end:4" data-bind="visible: canMailvelope"></div>
 	</div>
+	</main>
+	<aside class="ai-chat-panel">
+		<div class="ai-chat-header">
+			<div>
+				<span class="g-icon g-icon--sparkles ai-chat-header-icon" aria-hidden="true"></span>
+				<strong data-i18n="COMPOSE/AI_CHAT_TITLE"></strong>
+				<span class="ai-chat-model">gpt-5.6-terra</span>
+			</div>
+			<div class="ai-chat-runtime" data-bind="visible: aiChatBusy">
+				<span class="ai-status-dot" aria-hidden="true"></span>
+				<time data-bind="text: aiChatElapsedText"></time>
+			</div>
+		</div>
+		<div class="ai-chat-messages" data-bind="foreach: aiChatMessages, initDom: aiChatMessagesDom" aria-live="polite">
+			<article class="ai-chat-message" data-bind="css: {'is-user': 'user' === role, 'is-assistant': 'assistant' === role}">
+				<span class="ai-chat-message-icon">
+					<span class="g-icon g-icon--person" data-bind="visible: 'user' === role" aria-hidden="true"></span>
+					<span class="g-icon g-icon--sparkles" data-bind="visible: 'assistant' === role" aria-hidden="true"></span>
+				</span>
+				<div class="ai-chat-message-content"><div data-bind="text: text"></div><time data-bind="text: time"></time></div>
+			</article>
+		</div>
+		<div class="ai-chat-activity" data-bind="visible: aiChatBusy" aria-live="polite">
+			<div class="ai-chat-flow" aria-hidden="true"></div>
+			<div class="ai-chat-working">
+				<span class="g-icon g-icon--sparkles" aria-hidden="true"></span>
+				<span data-bind="text: aiChatActivity"></span>
+				<span class="ai-typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+			</div>
+			<div class="ai-chat-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+		</div>
+		<div class="ai-chat-error" data-bind="visible: aiError, text: aiError" role="alert"></div>
+		<div class="ai-chat-composer">
+			<div class="ai-chat-input-row">
+				<textarea rows="2" data-bind="textInput: aiChatInput, initDom: aiChatInputDom, event: {keydown: aiChatKeydown}" data-i18n="[placeholder]COMPOSE/AI_CHAT_PLACEHOLDER"></textarea>
+				<button type="button" class="ai-chat-send" data-bind="click: sendAiChat, enable: aiChatCanSend" data-i18n="[title]COMPOSE/AI_RUN">
+					<span class="g-icon g-icon--paper-plane" data-bind="visible: !aiChatBusy()" aria-hidden="true"></span>
+					<i class="icon-spinner" data-bind="visible: aiChatBusy" aria-hidden="true"></i>
+				</button>
+			</div>
+			<label class="ai-auto-send">
+				<input type="checkbox" data-bind="checked: aiSendWithoutConfirmation">
+				<span data-i18n="COMPOSE/AI_SEND_WITHOUT_CONFIRMATION"></span>
+			</label>
+		</div>
+	</aside>
 </div>

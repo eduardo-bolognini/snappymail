@@ -47,9 +47,9 @@ export const NotificationUserStore = new class {
 		this.enabled.subscribe(value => {
 			DesktopNotifications = !!value;
 			if (value && HTML5Notification && !NotificationsGranted()) {
-				HTML5Notification.requestPermission(() =>
-					this.allowed(!NotificationsDenied())
-				);
+				HTML5Notification.requestPermission()
+					.then(() => this.allowed(!NotificationsDenied()))
+					.catch(() => this.allowed(false));
 			}
 		});
 	}

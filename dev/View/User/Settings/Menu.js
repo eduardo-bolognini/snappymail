@@ -17,6 +17,18 @@ export class SettingsMenuUserView extends AbstractViewLeft {
 		return settings(route);
 	}
 
+	menuIcon(item) {
+		return `g-icon--${({
+			general: 'sliders',
+			contacts: 'persons',
+			accounts: 'envelope',
+			filters: 'funnel',
+			security: 'shield-check',
+			folders: 'folder-open',
+			themes: 'magic-wand'
+		})[item?.route] || 'gear'}`;
+	}
+
 	backToInbox() {
 		hasher.setHash(mailbox(getFolderInboxName()));
 	}

@@ -1,0 +1,60 @@
+.account-manual-config-toggle {
+	align-items: center;
+	background: transparent;
+	border: 0;
+	color: inherit;
+	cursor: pointer;
+	display: flex;
+	gap: 8px;
+	margin: 4px 0 0 160px;
+	padding: 4px 0;
+}
+
+.account-manual-server-settings {
+	border-top: 1px solid var(--border-color, #ddd);
+	margin-top: 14px;
+	padding-top: 14px;
+
+	h4 {
+		font-size: 14px;
+		margin: 0 0 10px;
+	}
+}
+
+.account-manual-server-row {
+	align-items: center;
+	display: grid;
+	gap: 8px;
+	grid-template-columns: 42px minmax(0, 1fr) 70px 108px;
+	margin-bottom: 10px;
+
+	label {
+		font-size: 12px;
+		font-weight: 700;
+		margin: 0;
+	}
+
+	input,
+	select {
+		box-sizing: border-box;
+		height: 34px;
+		margin: 0;
+		min-width: 0;
+		padding: 5px 7px;
+		width: 100%;
+	}
+}
+
+@media screen and (max-width: @maxMobileWidth) {
+	.account-manual-config-toggle {
+		margin-left: 0;
+	}
+
+	.account-manual-server-row {
+		grid-template-columns: 42px minmax(0, 1fr) 68px;
+
+		select {
+			grid-column: 2 / -1;
+		}
+	}
+}

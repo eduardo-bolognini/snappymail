@@ -19,6 +19,7 @@ export class AttachmentModel extends AbstractModel {
 
 		this.checked = ko.observable(true);
 
+		this.account = '';
 		this.mimeType = '';
 //		this.mimeTypeParams = '';
 		this.fileName = '';
@@ -130,6 +131,7 @@ export class AttachmentModel extends AbstractModel {
 			fileName: this.fileName,
 			data: this.url.replace(/^.+,/, '')
 		} : {
+			account: this.account,
 			folder: this.folder,
 			uid: this.uid,
 			mimeIndex: this.mimeIndex,

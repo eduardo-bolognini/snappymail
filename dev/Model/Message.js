@@ -118,6 +118,7 @@ export class MessageModel extends AbstractModel {
 		super();
 
 		Object.assign(this, {
+			account: '',
 			folder: '',
 			uid: 0,
 			hash: '',
@@ -259,6 +260,7 @@ export class MessageModel extends AbstractModel {
 
 	get requestHash() {
 		return b64EncodeJSONSafe({
+			account: this.account,
 			folder: this.folder,
 			uid: this.uid,
 			mimeType: RFC822,
@@ -302,6 +304,7 @@ export class MessageModel extends AbstractModel {
 //			this.headers(MimeHeaderCollectionModel.reviveFromJson(json.headers));
 
 			this.computeSenderEmail();
+			this.attachments().forEach(attachment => attachment.account = this.account);
 
 			let value, headers = this.headers();
 /*			// These could be by Envelope or MIME

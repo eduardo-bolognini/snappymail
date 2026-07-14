@@ -43,7 +43,10 @@ class SMIME extends Base
 		// How to use gpgme-json ?
 		$this->binary = static::findBinary('gpgsm');
 
-		$info = \preg_replace('/\R +/', ' ', `$this->binary --version`);
+		$info = $this->binary
+			? (string) \shell_exec(\escapeshellarg($this->binary) . ' --version')
+			: '';
+		$info = \preg_replace('/\R +/', ' ', $info);
 		if (\preg_match('/gpgsm.+([0-9]+\\.[0-9]+\\.[0-9]+)/', $info, $match)) {
 			$this->version = $match[1];
 		}

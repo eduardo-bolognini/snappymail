@@ -1,10 +1,10 @@
 {
-	"name": "SnappyMail Webmail",
-	"short_name": "SnappyMail",
-	"description": "Simple, modern & fast web-based email client",
+	"name": "EasyMail",
+	"short_name": "EasyMail",
+	"description": "A focused desktop email client with local-first AI tools",
 	"display": "standalone",
 	"background_color": "white",
-	"theme_color": "black",
+	"theme_color": "#fc4b08",
 	"icons": [{
 		"src": "apple-touch-icon.png",
 		"sizes": "64x64",

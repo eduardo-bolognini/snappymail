@@ -13,6 +13,13 @@ import { SettingsUserStore } from 'Stores/User/Settings';
 import { AbstractFetchRemote } from 'Remote/AbstractFetch';
 
 class RemoteUserFetch extends AbstractFetchRemote {
+	accountMessage(fCallback, account, folder, uid) {
+		this.abort('AiGetMessage').request('AiGetMessage', fCallback, {
+			account: pString(account),
+			folder: pString(folder),
+			uid: pInt(uid)
+		});
+	}
 
 	/**
 	 * @param {?Function} fCallback

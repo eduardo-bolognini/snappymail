@@ -72,7 +72,9 @@ class Logger extends \SplFixedArray
 			\set_exception_handler([$this, '__phpExceptionHandler']);
 			\register_shutdown_function([$this, '__loggerShutDown']);
 
-			if (\is_callable('pcntl_signal')) {
+			// Process-wide signal handlers are not safe in FrankenPHP's
+			// multithreaded desktop runtime.
+			if (!\getenv('SNAPPYMAIL_DESKTOP') && \is_callable('pcntl_signal')) {
 				\pcntl_async_signals(true);
 				foreach (static::$SIGNALS as $SIGNAL) {
 					\defined($SIGNAL) && \pcntl_signal(\constant($SIGNAL), [$this, 'signalHandler']);

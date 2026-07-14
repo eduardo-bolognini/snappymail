@@ -30,6 +30,13 @@ export class LoginUserView extends AbstractViewLogin {
 			email: SettingsGet('DevEmail'),
 			password: SettingsGet('DevPassword'),
 			signMe: false,
+			manualConfig: false,
+			imapHost: '',
+			imapPort: 993,
+			imapType: '1',
+			smtpHost: '',
+			smtpPort: 465,
+			smtpType: '1',
 
 			emailError: false,
 			passwordError: false,
@@ -91,6 +98,11 @@ export class LoginUserView extends AbstractViewLogin {
 		this.submitError('');
 	}
 
+	toggleManualConfig() {
+		this.manualConfig(!this.manualConfig());
+		this.submitError('');
+	}
+
 	submitCommand(self, event) {
 		const email = this.email().trim();
 		this.email(email);
@@ -107,6 +119,7 @@ export class LoginUserView extends AbstractViewLogin {
 			this.submitRequest(true);
 			data.set('language', this.bSendLanguage ? this.language() : '');
 			data.set('signMe', this.signMe() ? 1 : 0);
+			data.set('DesktopManualConfig', this.manualConfig() ? 1 : 0);
 			Remote.request('Login',
 				(iError, oData) => {
 					fireEvent('sm-user-login-response', {
@@ -115,6 +128,9 @@ export class LoginUserView extends AbstractViewLogin {
 					});
 					if (iError) {
 						this.submitRequest(false);
+						if (Notifications.DomainNotAllowed == iError) {
+							this.manualConfig(true);
+						}
 						if (Notifications.InvalidInputArgument == iError) {
 							iError = Notifications.AuthError;
 						}

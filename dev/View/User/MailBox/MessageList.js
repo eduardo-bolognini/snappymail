@@ -47,7 +47,7 @@ import { LayoutSideView, ClientSideKeyNameMessageListSize } from 'Common/EnumsUs
 import { setLayoutResizer } from 'Common/UtilsUser';
 
 const
-	canBeMovedHelper = () => MessagelistUserStore.hasCheckedOrSelected(),
+	canBeMovedHelper = () => !MessagelistUserStore.unifiedInbox() && MessagelistUserStore.hasCheckedOrSelected(),
 
 	/**
 	 * @param {string} sFolderFullName
@@ -84,6 +84,10 @@ const
 		);
 		MessageUserStore.message() ? hasher.replaceHash(hash) : hasher.setHash(hash);
 */
+	},
+
+	openUnifiedMessage = (msg, popup) => {
+		populateMessageBody(msg, popup);
 	};
 
 
@@ -97,6 +101,7 @@ export class MailMessageList extends AbstractViewRight {
 		this.allowDangerousActions = SettingsCapa('DangerousActions');
 
 		this.messageList = MessagelistUserStore;
+		this.unifiedInbox = MessagelistUserStore.unifiedInbox;
 		this.archiveAllowed = MessagelistUserStore.archiveAllowed;
 		this.canMarkAsSpam = MessagelistUserStore.canMarkAsSpam;
 		this.isSpamFolder = MessagelistUserStore.isSpamFolder;
@@ -242,15 +247,20 @@ export class MailMessageList extends AbstractViewRight {
 		this.selector.on('ItemSelect', message => {
 			if (message) {
 //				setMessage(message.clone());
-				setMessage(message);
+				MessagelistUserStore.unifiedInbox() ? openUnifiedMessage(message) : setMessage(message);
 			} else {
 				MessageUserStore.message(null);
 			}
 		});
 
-		this.selector.on('MiddleClick', message => populateMessageBody(message, true));
+		this.selector.on('MiddleClick', message =>
+			MessagelistUserStore.unifiedInbox() ? openUnifiedMessage(message, true) : populateMessageBody(message, true)
+		);
 
-		this.selector.on('ItemGetUid', message => (message ? message.folder + '/' + message.uid : ''));
+		this.selector.on('ItemGetUid', message => (message
+			? (message.account ? message.account + '/' : '') + message.folder + '/' + message.uid
+			: ''
+		));
 
 		this.selector.on('canSelect', () => MessagelistUserStore.canSelect());
 
@@ -258,6 +268,10 @@ export class MailMessageList extends AbstractViewRight {
 			const el = event.target;
 			if (el.closest('.flagParent')) {
 				if (currentMessage) {
+					if (MessagelistUserStore.unifiedInbox()) {
+						openUnifiedMessage(currentMessage);
+						return;
+					}
 					const checked = MessagelistUserStore.listCheckedOrSelected();
 					listAction(
 						currentMessage.folder,
@@ -333,8 +347,10 @@ export class MailMessageList extends AbstractViewRight {
 			downloadZipCommand: canBeMovedHelper,
 			forwardCommand: canBeMovedHelper,
 			deleteWithoutMoveCommand: canBeMovedHelper,
-			deleteCommand: () => MessagelistUserStore.hasCheckedOrSelectedAndUndeleted(),
-			undeleteCommand: () => MessagelistUserStore.hasCheckedOrSelectedAndDeleted(),
+			deleteCommand: () => !MessagelistUserStore.unifiedInbox()
+				&& MessagelistUserStore.hasCheckedOrSelectedAndUndeleted(),
+			undeleteCommand: () => !MessagelistUserStore.unifiedInbox()
+				&& MessagelistUserStore.hasCheckedOrSelectedAndDeleted(),
 			archiveCommand: canBeMovedHelper,
 			spamCommand: canBeMovedHelper,
 			notSpamCommand: canBeMovedHelper,
@@ -495,6 +511,8 @@ export class MailMessageList extends AbstractViewRight {
 	}
 
 	listSetAllSeen() {
+		if (MessagelistUserStore.unifiedInbox()) return;
+
 		let sFolderFullName = FolderUserStore.currentFolderFullName(),
 			iThreadUid = MessagelistUserStore.endThreadUid();
 		if (sFolderFullName) {
@@ -735,10 +753,15 @@ export class MailMessageList extends AbstractViewRight {
 		});
 
 		// write/compose (open compose popup)
-		registerShortcut('w,c,new', '', [ScopeMessageList, ScopeMessageView], () => {
-			showMessageComposer();
-			return false;
-		});
+			registerShortcut('w,c,new', '', [ScopeMessageList, ScopeMessageView], () => {
+				showMessageComposer();
+				return false;
+			});
+
+			addShortcut('s', 'meta', [ScopeMessageList, ScopeMessageView], () => {
+				showMessageComposer([ComposeType.Empty, null, null, null, null, null, null, { delegate: true }]);
+				return false;
+			});
 
 		// important - star/flag messages
 		registerShortcut('i', '', [ScopeMessageList, ScopeMessageView], () => {

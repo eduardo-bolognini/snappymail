@@ -14,6 +14,7 @@ import { MessagelistUserStore } from 'Stores/User/Messagelist';
 import { SettingsUserStore } from 'Stores/User/Settings';
 
 import { sortFolders } from 'Common/Folders';
+import { findSystemFolderByName } from 'Common/SystemFolderDetection';
 import { i18n, translateTrigger } from 'Common/Translator';
 
 import { AbstractModel } from 'Knoin/AbstractModel';
@@ -129,8 +130,8 @@ export class FolderCollectionModel extends AbstractCollectionModel
 	static reviveFromJson(object) {
 		const expandedFolders = Local.get(ClientSideKeyNameExpandedFolders);
 
-		forEachObjectEntry(SystemFolders, (key, value) =>
-			value || (SystemFolders[key] = SettingsGet(key+'Folder'))
+		forEachObjectEntry(SystemFolders, key =>
+			SystemFolders[key] = SettingsGet(key+'Folder')
 		);
 
 		const result = super.reviveFromJson(object, oFolder => {
@@ -212,6 +213,7 @@ export class FolderCollectionModel extends AbstractCollectionModel
 		});
 
 		result.CountRec = result.length;
+		SystemFolders.Sent || (SystemFolders.Sent = findSystemFolderByName(result, 'Sent'));
 		setFolderInboxName(SystemFolders.Inbox);
 
 		let i = result.length;

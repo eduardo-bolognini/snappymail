@@ -16,8 +16,6 @@ abstract class Autoconfig
 		return
 			// First try autoconfig
 			static::resolve($domain, $emailaddress)
-			// Else try MX, but it is mostly useless
-//			?: static::mx($domain, $emailaddress)
 			// Else try Microsoft autodiscover
 			?: static::autodiscover($domain)
 			// Else try DNS SRV
@@ -27,15 +25,16 @@ abstract class Autoconfig
 	private static function resolve(string $domain, string $emailaddress) : ?array
 	{
 		$emailaddress = \urlencode($emailaddress);
+		$context = \stream_context_create(['http' => ['timeout' => 2]]);
 		foreach ([
+			// Central database is fast and does not receive the full email address.
+			"https://autoconfig.thunderbird.net/v1.1/{$domain}",
 			// Mail provider https://www.ietf.org/archive/id/draft-bucksch-autoconfig-02.html#section-4.1
 			"https://autoconfig.{$domain}/.well-known/mail-v1.xml?emailaddress={$emailaddress}",
 			"https://{$domain}/.well-known/autoconfig/mail/config-v1.1.xml",
-			"http://autoconfig.{$domain}/mail/config-v1.1.xml",
-			// Central database https://www.ietf.org/archive/id/draft-bucksch-autoconfig-02.html#section-4.2
-			"https://autoconfig.thunderbird.net/v1.1/{$domain}"
+			"http://autoconfig.{$domain}/mail/config-v1.1.xml"
 		] as $url) {
-			$data = \file_get_contents($url);
+			$data = @\file_get_contents($url, false, $context);
 			if ($data && \str_contains($data, '<clientConfig')) {
 				$data = \json_decode(
 					\json_encode(
@@ -44,16 +43,18 @@ abstract class Autoconfig
 				if (!empty($data['emailProvider'])) {
 					$data = $data['emailProvider'];
 					unset($data['documentation']);
-					$data['incomingServer'] = \array_filter(
+					$data['incomingServer'] = \array_values(\array_filter(
 						isset($data['incomingServer'][0]) ? $data['incomingServer'] : [$data['incomingServer']],
 						fn($data) => 'imap' === $data['@attributes']['type']
-					);
-					$data['outgoingServer'] = \array_filter(
+					));
+					$data['outgoingServer'] = \array_values(\array_filter(
 						isset($data['outgoingServer'][0]) ? $data['outgoingServer'] : [$data['outgoingServer']],
 						fn($data) => 'smtp' === $data['@attributes']['type']
-					);
-					$data['canonical'] = $url;
-					return $data;
+					));
+					if ($data['incomingServer'] && $data['outgoingServer']) {
+						$data['canonical'] = $url;
+						return $data;
+					}
 				}
 			}
 		}
@@ -74,7 +75,11 @@ abstract class Autoconfig
 		}
 		if (null === $list) {
 			$list = [];
-			$data = \file_get_contents('https://publicsuffix.org/list/public_suffix_list.dat');
+			$data = @\file_get_contents(
+				'https://publicsuffix.org/list/public_suffix_list.dat',
+				false,
+				\stream_context_create(['http' => ['timeout' => 2]])
+			);
 			if ($data) {
 				$list = \array_filter(
 					\explode("\n", $data),
@@ -93,12 +98,17 @@ abstract class Autoconfig
 	private static function mx(string $domain, string $emailaddress) : ?array
 	{
 		$suffixes = static::publicsuffixes();
+		$hostnames = [];
 		foreach (\SnappyMail\DNS::MX($domain) as $hostname) {
 			// Extract only the second-level domain from the MX hostname
 			$mxbasedomain = \explode('.', $hostname);
 			$i = -2;
-			while (\in_array(\implode('.', \array_slice($mxbasedomain, $i)), $suffixes)) {
+			$count = \count($mxbasedomain);
+			while (-$i <= $count && \in_array(\implode('.', \array_slice($mxbasedomain, $i)), $suffixes)) {
 				--$i;
+			}
+			if (-$i > $count) {
+				continue;
 			}
 			$mxbasedomain = \implode('.', \array_slice($mxbasedomain, $i));
 			if ($mxbasedomain) {
@@ -121,6 +131,7 @@ abstract class Autoconfig
 				}
 			}
 		}
+		return null;
 	}
 
 	/**
@@ -199,6 +210,7 @@ abstract class Autoconfig
 		$context = \stream_context_create(['http' => [
 			'method'  => 'POST',
 			'header'  => 'Content-Type: application/xml',
+			'timeout' => 2,
 			'content' => '<?xml version="1.0" encoding="utf-8" ?>
 		<Autodiscover xmlns="http://schemas.microsoft.com/exchange/autodiscover/outlook/requestschema/2006">
 			<Request>
@@ -208,7 +220,7 @@ abstract class Autoconfig
 		</Autodiscover>'
 		]]);
 		$url = "{$host}/autodiscover/autodiscover.xml";
-		$xml = \file_get_contents($url, false, $context);
+		$xml = @\file_get_contents($url, false, $context);
 		if ($xml) {
 			$data = \json_decode(
 				\json_encode(

@@ -25,9 +25,10 @@ import { SettingsCapa, SettingsGet, elementById, addShortcut, createElement } fr
 
 import { AppUserStore } from 'Stores/User/App';
 import { SettingsUserStore } from 'Stores/User/Settings';
-import { IdentityUserStore } from 'Stores/User/Identity';
+import { IdentityUserStore, SenderIdentityUserStore } from 'Stores/User/Identity';
 import { AccountUserStore } from 'Stores/User/Account';
 import { FolderUserStore } from 'Stores/User/Folder';
+import { LanguageStore } from 'Stores/Language';
 
 import { PgpUserStore } from 'Stores/User/Pgp';
 import { OpenPGPUserStore } from 'Stores/User/OpenPGP';
@@ -45,6 +46,7 @@ import Remote from 'Remote/User/Fetch';
 import { ComposeAttachmentModel } from 'Model/ComposeAttachment';
 import { EmailModel } from 'Model/Email';
 import { IdentityModel } from 'Model/Identity';
+import { MessageModel } from 'Model/Message';
 import { MimeHeaderAutocryptModel } from 'Model/MimeHeaderAutocrypt';
 import { addressparser } from 'Mime/Address';
 
@@ -64,12 +66,42 @@ let oLastMessage;
 
 const
 	ScopeCompose = 'Compose',
+	AiPendingComposeKey = 'snappymail-ai-pending-compose',
 
 	tpl = createElement('template'),
+
+	aiComposeType = mode => ({
+		new: ComposeType.Empty,
+		reply: ComposeType.Reply,
+		replyAll: ComposeType.ReplyAll,
+		forward: ComposeType.Forward
+	}[mode] || ComposeType.Empty),
+
+	aiSourceMessage = source => source
+		&& String(source.account || '').trim()
+		&& String(source.folder || '').trim()
+		&& 0 < Number(source.uid)
+		? {
+			account: String(source.account).trim(),
+			folder: String(source.folder).trim(),
+			uid: Number(source.uid)
+		}
+		: null,
 
 	base64_encode = text => text ? b64Encode(text).match(/.{1,76}/g).join('\r\n') : '',
 
 	getEmail = value => addressparser(value)[0]?.email || false,
+	looksLikeEmailAddress = value => /^(?:[^<>]+<)?[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+>?$/.test(String(value || '').trim()),
+
+	draftAddressLine = list => (list || []).filter(item => item?.email).map(item =>
+		(new EmailModel(String(item.email), String(item.name || ''))).toLine()
+	).join(', '),
+
+	fileFromBase64 = (data, name) => {
+		const binary = atob(data), bytes = new Uint8Array(binary.length);
+		for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+		return new File([bytes], name);
+	},
 
 	/**
 	 * @param {Array} aList
@@ -91,9 +123,13 @@ const
 		}
 	},
 
-	findIdentity = addresses => {
+	findIdentity = (addresses, accountEmail = '') => {
 		addresses = addresses.map(item => item.email);
-		return IdentityUserStore.find(item => addresses.includes(item.email));
+		const account = String(accountEmail || '').toLowerCase();
+		return SenderIdentityUserStore.find(item =>
+			(!account || String(item.accountEmail || '').toLowerCase() === account)
+			&& addresses.includes(item.email)
+		);
 	},
 
 	/**
@@ -189,7 +225,56 @@ class MimePart {
 	}
 }
 
+function loadAiSourceMessage(source) {
+	source = aiSourceMessage(source);
+	if (!source) return Promise.reject(new Error(i18n('COMPOSE/AI_SOURCE_MESSAGE_ERROR')));
+	return new Promise((resolve, reject) => {
+		Remote.request('AiGetMessage', (error, data) => {
+			const message = !error && MessageModel.reviveFromJson(data?.Result);
+			if (message) {
+				resolve(message);
+			} else {
+				reject(new Error(data?.messageAdditional || data?.message
+					|| (error ? getNotification(error) : i18n('COMPOSE/AI_SOURCE_MESSAGE_ERROR'))));
+			}
+		}, source, 120000);
+	});
+}
+
 export class ComposePopupView extends AbstractViewPopup {
+	static restorePendingAiCompose() {
+		let pending;
+		try {
+			pending = JSON.parse(sessionStorage.getItem(AiPendingComposeKey) || 'null');
+		} catch {
+			sessionStorage.removeItem(AiPendingComposeKey);
+			return false;
+		}
+		const source = aiSourceMessage(pending?.draft?.sourceMessage);
+		if (!source || source.account.toLowerCase() !== AccountUserStore.email().toLowerCase()) return false;
+		loadAiSourceMessage(source).then(message => {
+			sessionStorage.removeItem(AiPendingComposeKey);
+			rl.app.showMessageComposer([
+				aiComposeType(pending.draft.mode),
+				message,
+				null,
+				null,
+				null,
+				null,
+				null,
+				{
+					restoreDraft: pending.draft,
+					restoreChat: pending.chatMessages,
+					restoreMessage: pending.responseMessage
+				}
+			]);
+		}).catch(error => {
+			sessionStorage.removeItem(AiPendingComposeKey);
+			console.error(error);
+		});
+		return true;
+	}
+
 	constructor() {
 		super('Compose');
 
@@ -261,6 +346,10 @@ export class ComposePopupView extends AbstractViewPopup {
 			draftUid: 0,
 			sending: false,
 			saving: false,
+			preSendActive: false,
+			preSendSeconds: 0,
+			preSendAlert: null,
+			minimized: false,
 
 			viewArea: 'body',
 
@@ -268,9 +357,27 @@ export class ComposePopupView extends AbstractViewPopup {
 			addAttachmentEnabled: false,
 
 			editorArea: null, // initDom
+			aiCommandInput: null,
+			aiChatInputDom: null,
+			aiChatMessagesDom: null,
+			aiInstruction: '',
+			aiBusy: false,
+			aiError: '',
+			aiSummary: '',
+			aiSendWithoutConfirmation: false,
+			aiJustApplied: false,
+			aiDelegationMode: false,
+			aiChatInput: '',
+			aiChatBusy: false,
+			aiChatActivity: '',
+			aiChatElapsedSeconds: 0,
+			aiChatRequestId: '',
+			senderAccount: AccountUserStore.email(),
+			senderManuallySelected: false,
 
-			currentIdentity: IdentityUserStore()[0]
+			currentIdentity: SenderIdentityUserStore()[0] || IdentityUserStore()[0]
 		});
+		this.aiChatMessages = ko.observableArray([]);
 
 		// Used by ko.bindingHandlers.emailsTags
 		['to','cc','bcc'].forEach(name => {
@@ -302,8 +409,32 @@ export class ComposePopupView extends AbstractViewPopup {
 		this.doClose = this.doClose.debounce(200);
 
 		this.iTimer = 0;
+		this.aiChatTimer = 0;
+		this.preSendTimer = 0;
+		this.preSendRequestId = 0;
+		this.preSendReviewPassed = false;
+		this.preSendFingerprint = '';
+		this.minimizedDock = null;
+		this.aiComposeType = ComposeType.Empty;
+		this.aiQuotedHtml = '';
+		this.toAiCommand = command => this.aiRecipientCommand('to', command);
+		this.ccAiCommand = command => this.aiRecipientCommand('cc', command);
+		this.bccAiCommand = command => this.aiRecipientCommand('bcc', command);
 
 		addComputablesTo(this, {
+			aiCanRun: () => !this.aiBusy() && Boolean(this.aiInstruction().trim()),
+			aiChatCanSend: () => !this.aiChatBusy() && Boolean(this.aiChatInput().trim()),
+			aiChatElapsedText: () => {
+				const seconds = this.aiChatElapsedSeconds();
+				return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+			},
+			aiCommandPlaceholder: () => [ComposeType.Reply, ComposeType.ReplyAll, ComposeType.Forward]
+				.includes(this.aiComposeType)
+				? i18n('COMPOSE/AI_REPLY_PLACEHOLDER')
+				: i18n('COMPOSE/AI_COMMAND_PLACEHOLDER'),
+			preSendLabel: () => 0 < this.preSendSeconds()
+				? i18n('COMPOSE/AI_PRE_SEND_COUNTDOWN', { COUNT: this.preSendSeconds() })
+				: i18n('COMPOSE/AI_PRE_SEND_CHECKING'),
 			sendButtonSuccess: () => !this.sendError() && !this.sendSuccessButSaveError(),
 
 			savedTimeText: () =>
@@ -341,13 +472,17 @@ export class ComposePopupView extends AbstractViewPopup {
 			signOptionsText: () => this.signOptions().map(o => o[0]).join(', '),
 
 			identitiesOptions: () =>
-				IdentityUserStore.map(item => ({
+				SenderIdentityUserStore.map(item => ({
 					item: item,
-					optValue: item.id(),
-					optText: item
+					optValue: `${item.accountEmail}:${item.id()}`,
+					optText: `${item.toString()} · ${item.accountName || item.accountEmail}`
 				})),
+			senderAccountLabel: () => {
+				const identity = this.currentIdentity();
+				return identity?.accountName || identity?.accountEmail || this.senderAccount();
+			},
 
-			canBeSentOrSaved: () => !this.sending() && !this.saving()
+			canBeSentOrSaved: () => !this.sending() && !this.saving() && !this.preSendActive()
 		});
 
 		addSubscribablesTo(this, {
@@ -359,6 +494,7 @@ export class ComposePopupView extends AbstractViewPopup {
 
 			currentIdentity: value => {
 				if (value) {
+					this.senderAccount(value.accountEmail || AccountUserStore.email());
 					this.from(value.toString());
 					this.doEncrypt(value.pgpEncrypt() || SettingsUserStore.pgpEncrypt());
 					this.doSign(value.pgpSign() || SettingsUserStore.pgpSign());
@@ -472,7 +608,7 @@ export class ComposePopupView extends AbstractViewPopup {
 		return UNUSED_OPTION_VALUE === sSentFolder ? null : sSentFolder;
 	}
 
-	sendCommand() {
+	validateSend() {
 		this.attachmentsInProcessError(false);
 		this.attachmentsInErrorError(false);
 		this.emptyToError(false);
@@ -488,6 +624,135 @@ export class ComposePopupView extends AbstractViewPopup {
 		if (!this.to().trim() && !this.cc().trim() && !this.bcc().trim()) {
 			this.emptyToError(true);
 		}
+
+		return !this.emptyToError() && !this.attachmentsInErrorError() && !this.attachmentsInProcessError();
+	}
+
+	preSendContext() {
+		return {
+			...this.aiContext(),
+			attachments: this.attachments()
+				.filter(item => item?.complete?.() && item?.enabled?.())
+				.map(item => ({
+					name: String(item.fileName?.() || ''),
+					type: String(item.mimeType?.() || ''),
+					size: Number(item.size?.() || 0)
+				}))
+		};
+	}
+
+	preSendDraftFingerprint() {
+		return JSON.stringify(this.preSendContext());
+	}
+
+	cancelPreSend(clearAlert = true) {
+		clearInterval(this.preSendTimer);
+		this.preSendTimer = 0;
+		this.preSendRequestId += 1;
+		this.preSendReviewPassed = false;
+		this.preSendFingerprint = '';
+		this.preSendActive(false);
+		this.preSendSeconds(0);
+		if (clearAlert) this.preSendAlert(null);
+	}
+
+	dismissPreSendAlert() {
+		this.preSendAlert(null);
+	}
+
+	retryPreSendReview() {
+		this.preSendAlert(null);
+		this.sendCommand();
+	}
+
+	forceSendAfterReview() {
+		this.cancelPreSend();
+		this.sendNow();
+	}
+
+	finishPreSendReview(requestId) {
+		if (!this.preSendActive() || requestId !== this.preSendRequestId
+			|| !this.preSendReviewPassed || 0 < this.preSendSeconds()) return;
+		if (this.preSendFingerprint !== this.preSendDraftFingerprint()) {
+			this.cancelPreSend(false);
+			this.preSendAlert({
+				type: 'changed',
+				title: i18n('COMPOSE/AI_PRE_SEND_CHANGED_TITLE'),
+				summary: i18n('COMPOSE/AI_PRE_SEND_CHANGED'),
+				issues: []
+			});
+			return;
+		}
+		this.cancelPreSend(false);
+		this.preSendAlert(null);
+		this.sendNow();
+	}
+
+	startPreSendReview() {
+		this.cancelPreSend();
+		this.preSendActive(true);
+		this.preSendSeconds(5);
+		this.preSendFingerprint = this.preSendDraftFingerprint();
+		const requestId = ++this.preSendRequestId;
+		this.preSendTimer = setInterval(() => {
+			if (requestId !== this.preSendRequestId) return;
+			this.preSendSeconds(Math.max(0, this.preSendSeconds() - 1));
+			if (0 === this.preSendSeconds()) {
+				clearInterval(this.preSendTimer);
+				this.preSendTimer = 0;
+				this.finishPreSendReview(requestId);
+			}
+		}, 1000);
+
+		Promise.resolve().then(() => {
+			if (!window.snappyDesktop?.ai?.reviewBeforeSend) throw new Error('Pre-send review is unavailable');
+			return window.snappyDesktop.ai.reviewBeforeSend({
+				context: this.preSendContext(),
+				locale: LanguageStore.language()
+			});
+		}).then(result => {
+			if (!this.preSendActive() || requestId !== this.preSendRequestId) return;
+			if (true !== result?.safeToSend) {
+				const issues = (Array.isArray(result?.issues) ? result.issues : []).slice(0, 3).map(issue => ({
+					field: String(issue?.field || 'other'),
+					title: String(issue?.title || ''),
+					detail: String(issue?.detail || '')
+				}));
+				this.cancelPreSend(false);
+				this.preSendAlert({
+					type: 'issue',
+					title: i18n('COMPOSE/AI_PRE_SEND_ALERT_TITLE'),
+					summary: String(result?.summary || i18n('COMPOSE/AI_PRE_SEND_ALERT_SUMMARY')),
+					issues
+				});
+				return;
+			}
+			this.preSendReviewPassed = true;
+			this.finishPreSendReview(requestId);
+		}).catch(error => {
+			if (!this.preSendActive() || requestId !== this.preSendRequestId) return;
+			console.warn('Codex pre-send review failed', error);
+			this.cancelPreSend(false);
+			this.preSendAlert({
+				type: 'error',
+				title: i18n('COMPOSE/AI_PRE_SEND_ERROR_TITLE'),
+				summary: i18n('COMPOSE/AI_PRE_SEND_ERROR'),
+				issues: []
+			});
+		});
+	}
+
+	sendCommand() {
+		if (!this.validateSend()) return;
+		if ('' === this.sentFolder()) {
+			showScreenPopup(FolderSystemPopupView, [FolderType.Sent]);
+			return;
+		}
+		this.startPreSendReview();
+	}
+
+	sendNow() {
+		if (!this.validateSend()) return;
 
 		if (!this.emptyToError() && !this.attachmentsInErrorError() && !this.attachmentsInProcessError()) {
 			const sSentFolder = this.sentFolder();
@@ -512,6 +777,22 @@ export class ComposePopupView extends AbstractViewPopup {
 					this.sending(true);
 
 					const sendMessage = params => {
+						const recipientMap = new Map;
+						[params.to, params.cc, params.bcc].filter(Boolean).forEach(value => {
+							addressparser(value).forEach(item => {
+								const email = String(item.email || '').trim().toLowerCase();
+								if (email && !recipientMap.has(email)) {
+									recipientMap.set(email, { email, name: String(item.name || '').trim() });
+								}
+							});
+						});
+						const aiObservation = {
+							accountEmail: this.senderAccount(),
+							recipients: [...recipientMap.values()],
+							subject: params.subject || '',
+							body: params.plain || htmlToPlain(this.oEditor.getData() || ''),
+							sentAt: new Date().toISOString()
+						};
 						Remote.request('SendMessage',
 							(iError, data) => {
 								this.sending(false);
@@ -546,6 +827,10 @@ export class ComposePopupView extends AbstractViewPopup {
 										key && Passphrases.delete(key);
 									}
 								} else {
+									window.snappyDesktop?.ai.observeSent({
+										locale: LanguageStore.language(),
+										message: aiObservation
+									}).catch(error => console.warn('Codex contact observation failed', error));
 									if (arrayLength(this.aDraftInfo) > 0) {
 										const flag = {
 											'reply': '\\answered',
@@ -669,6 +954,49 @@ export class ComposePopupView extends AbstractViewPopup {
 		this.doClose();
 	}
 
+	minimizeCommand() {
+		if (!this.canBeSentOrSaved()) return;
+		ComposePopupView.inEdit(true);
+		this.minimized(true);
+		if (!FolderUserStore.draftsFolderNotEnabled() && SettingsUserStore.allowDraftAutosave()) {
+			this.saveCommand();
+		}
+		this.close();
+	}
+
+	restoreMinimized() {
+		if (!this.minimized()) return;
+		this.minimized(false);
+		showScreenPopup(ComposePopupView);
+	}
+
+	buildMinimizedDock() {
+		if (this.minimizedDock) return;
+		const dock = createElement('button', {
+			class: 'compose-minimized-dock',
+			type: 'button'
+		});
+		dock.hidden = true;
+		dock.innerHTML = '<span class="compose-minimized-icon g-icon g-icon--envelope" aria-hidden="true"></span>'
+			+ '<span class="compose-minimized-copy"><strong></strong><small></small></span>'
+			+ '<span class="compose-minimized-restore g-icon g-icon--chevron-up" aria-hidden="true"></span>';
+		dock.title = i18n('ACCESSIBILITY/LABEL_OPEN_COMPOSE_POPUP');
+		dock.setAttribute('aria-label', dock.title);
+		dock.addEventListener('click', () => this.restoreMinimized());
+		document.body.append(dock);
+		this.minimizedDock = dock;
+
+		const update = () => {
+			dock.hidden = !this.minimized();
+			dock.querySelector('strong').textContent = this.subject().trim()
+				|| i18n('FOLDER_LIST/BUTTON_NEW_MESSAGE');
+			dock.querySelector('small').textContent = this.to().trim()
+				|| i18n('COMPOSE/EMPTY_TO_ERROR_DESC');
+		};
+		[this.minimized, this.subject, this.to].forEach(observable => observable.subscribe(update));
+		update();
+	}
+
 	contactsCommand() {
 		if (this.allowContacts) {
 			this.skipCommand();
@@ -696,35 +1024,380 @@ export class ComposePopupView extends AbstractViewPopup {
 
 	// getAutocomplete
 	emailsSource(value, fResponse) {
-		Remote.abort('Suggestions').request('Suggestions',
-			(iError, data) => {
-				if (!iError && isArray(data.Result)) {
-					fResponse(
-						data.Result.map(item => (item?.[0] ? (new EmailModel(item[0], item[1])).toLine() : null))
-						.filter(v => v)
-					);
-				} else if (Notifications.RequestAborted !== iError) {
-					fResponse([]);
-				}
-			},
-			{
-				Query: value
-//				,Page: 1
-			}
-		);
+		const cleanValue = String(value || '').trim(),
+			codexFallback = () => ({
+				value: `/${cleanValue.replace(/^\/+/, '')}`,
+				label: i18n('COMPOSE/AI_RECIPIENT_CODEX'),
+				command: cleanValue
+			});
+		if (cleanValue.startsWith('/')) {
+			fResponse([codexFallback()]);
+			return;
+		}
+		const snappyContacts = new Promise(resolve => {
+			Remote.abort('Suggestions').request('Suggestions',
+				(iError, data) => resolve(!iError && isArray(data.Result) ? data.Result : []),
+				{ Query: value }
+			);
+		}),
+			aiDirectory = window.snappyDesktop?.ai?.recipientSuggestions
+				? window.snappyDesktop.ai.recipientSuggestions(value).catch(() => [])
+				: Promise.resolve([]);
+
+		Promise.all([snappyContacts, aiDirectory]).then(([contacts, directory]) => {
+			const suggestions = [],
+				seenEmails = new Set,
+				addContact = (email, name, label = '') => {
+					email = String(email || '').trim();
+					const key = email.toLowerCase();
+					if (!email || seenEmails.has(key)) return;
+					seenEmails.add(key);
+					const line = (new EmailModel(email, String(name || ''))).toLine();
+					suggestions.push({ value: line, insertValue: line, label: String(label || '') });
+				};
+
+			(directory || []).filter(item => 'group' === item.type).forEach(group => {
+				const addresses = [], groupEmails = new Set;
+				(group.members || []).forEach(member => {
+					const email = String(member?.email || '').trim(), key = email.toLowerCase();
+					if (!email || groupEmails.has(key)) return;
+					groupEmails.add(key);
+					addresses.push((new EmailModel(email, String(member.name || ''))).toLine());
+				});
+				if (addresses.length) suggestions.push({
+					value: i18n('COMPOSE/AI_RECIPIENT_GROUP', { NAME: group.name }),
+					label: i18n('COMPOSE/AI_RECIPIENT_GROUP_MEMBERS', { COUNT: addresses.length }),
+					addresses
+				});
+			});
+
+			(directory || []).filter(item => 'contact' === item.type).forEach(contact =>
+				addContact(contact.email, contact.name, contact.organization)
+			);
+			contacts.forEach(contact => contact?.[0] && addContact(contact[0], contact[1]));
+			if (!suggestions.length && !looksLikeEmailAddress(cleanValue)) suggestions.push(codexFallback());
+			fResponse(suggestions.slice(0, 30));
+		});
 	}
 
 	selectIdentity(identity) {
 		identity = identity?.item;
 		if (identity) {
+			this.senderManuallySelected(true);
 			this.currentIdentity(identity);
 			this.setSignature(identity);
 		}
 	}
 
+	focusAiCommand() {
+		setTimeout(() => this.aiChatInputDom()?.focus(), 0);
+	}
+
+	aiChatKeydown(_view, event) {
+		if ('Enter' === event.key && !event.shiftKey) {
+			event.preventDefault();
+			this.sendAiChat();
+			return false;
+		}
+		return true;
+	}
+
+	aiChatMessage(role, text, system = false) {
+		return {
+			id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+			role,
+			text: String(text || ''),
+			system,
+			time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+		};
+	}
+
+	resetAiChat() {
+		clearInterval(this.aiChatTimer);
+		this.aiChatTimer = 0;
+		this.aiChatInput('');
+		this.aiChatBusy(false);
+		this.aiChatActivity('');
+		this.aiChatElapsedSeconds(0);
+		this.aiChatRequestId('');
+		this.aiChatMessages([
+			this.aiChatMessage('assistant', i18n('COMPOSE/AI_CHAT_WELCOME'), true)
+		]);
+	}
+
+	scrollAiChat() {
+		setTimeout(() => {
+			const dom = this.aiChatMessagesDom();
+			if (dom) dom.scrollTop = dom.scrollHeight;
+		}, 0);
+	}
+
+	aiChatActivityLabel(activity = {}) {
+		const type = String(activity.itemType || '').toLowerCase(),
+			tool = String(activity.toolName || '').toLowerCase();
+		if (tool.includes('get_thread')) return i18n('COMPOSE/AI_CHAT_ACTIVITY_THREAD');
+		if (tool.includes('search_conversations') || tool.includes('list_mailboxes')) {
+			return i18n('COMPOSE/AI_CHAT_ACTIVITY_MAIL');
+		}
+		if (tool.includes('contact') || tool.includes('recipient')) return i18n('COMPOSE/AI_CHAT_ACTIVITY_CONTACTS');
+		if (tool.includes('attachment')) return i18n('COMPOSE/AI_CHAT_ACTIVITY_ATTACHMENTS');
+		if (type.includes('mcp')) return i18n('COMPOSE/AI_CHAT_ACTIVITY_CONTEXT');
+		if (type.includes('agentmessage')) return i18n('COMPOSE/AI_CHAT_ACTIVITY_DRAFT');
+		return i18n('COMPOSE/AI_CHAT_ACTIVITY_REASONING');
+	}
+
+	async sendAiChat(initialInstruction = '') {
+		const instruction = String(initialInstruction || this.aiChatInput()).trim();
+		if (!instruction || this.aiChatBusy()) return;
+		if (!window.snappyDesktop?.ai?.composeChat) {
+			this.aiError(i18n('COMPOSE/AI_DESKTOP_REQUIRED'));
+			return;
+		}
+		const history = this.aiChatMessages()
+			.filter(item => !item.system)
+			.map(item => ({ role: item.role, text: item.text }));
+		this.aiChatMessages.push(this.aiChatMessage('user', instruction));
+		this.aiChatInput('');
+		this.aiChatBusy(true);
+		this.aiError('');
+		this.aiSummary('');
+		this.aiChatActivity(i18n('COMPOSE/AI_CHAT_ACTIVITY_REASONING'));
+		this.aiChatElapsedSeconds(0);
+		const requestId = window.crypto?.randomUUID?.()
+			|| `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+			startedAt = Date.now();
+		this.aiChatRequestId(requestId);
+		clearInterval(this.aiChatTimer);
+		this.aiChatTimer = setInterval(() => {
+			this.aiChatElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+		}, 1000);
+		this.scrollAiChat();
+		try {
+			const response = await window.snappyDesktop.ai.composeChat({
+				instruction,
+				history,
+				context: this.aiContext(),
+				requestId,
+				locale: LanguageStore.language()
+			});
+			const draftApplied = response.applyDraft
+				? await this.applyAiDraft(response.draft, { responseMessage: response.message })
+				: false;
+			const message = String(response.message || response.summary || i18n('COMPOSE/AI_CHAT_DRAFT_UPDATED'));
+			this.aiChatMessages.push(this.aiChatMessage('assistant', message));
+			this.aiSummary(String(response.summary || ''));
+			if (draftApplied && this.aiSendWithoutConfirmation()) {
+				await this.waitForAiAttachments();
+				this.sendCommand();
+			}
+		} catch (error) {
+			const message = error.message || String(error);
+			this.aiError(message);
+			this.aiChatMessages.push(this.aiChatMessage('assistant', message));
+		} finally {
+			clearInterval(this.aiChatTimer);
+			this.aiChatTimer = 0;
+			this.aiChatElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+			this.aiChatActivity('');
+			this.aiChatBusy(false);
+			this.scrollAiChat();
+		}
+	}
+
+	aiCommandKeydown(_view, event) {
+		if ('Enter' === event.key && !event.shiftKey) {
+			event.preventDefault();
+			this.submitAiCommand();
+			return false;
+		}
+		return true;
+	}
+
+	fromAiKeydown(_view, event) {
+		const value = this.from().trim();
+		if ('Enter' === event.key && value.startsWith('/')) {
+			event.preventDefault();
+			this.from(this.currentIdentity()?.toString() || '');
+			this.aiRecipientCommand('from', value.slice(1).trim());
+			return false;
+		}
+		return true;
+	}
+
+	aiRecipientCommand(field, instruction) {
+		if (!instruction) return;
+		this.aiInstruction(instruction);
+		this.aiDelegationMode(false);
+		this.runAiAssist('recipients', `${field.toUpperCase()}: ${instruction}`);
+	}
+
+	aiContext() {
+		const bodyHtml = this.oEditor?.getData() || '';
+		return {
+			mode: {
+				[ComposeType.Reply]: 'reply',
+				[ComposeType.ReplyAll]: 'replyAll',
+				[ComposeType.Forward]: 'forward'
+			}[this.aiComposeType] || 'new',
+			accountEmail: this.senderAccount(),
+			senderAccount: this.senderAccount(),
+			senderLocked: this.senderManuallySelected(),
+			allowedSenders: SenderIdentityUserStore().map(identity => ({
+				accountEmail: identity.accountEmail,
+				accountName: identity.accountName,
+				email: identity.email,
+				name: identity.name,
+				identityId: identity.id()
+			})),
+			from: this.from(),
+			to: this.to(),
+			cc: this.cc(),
+			bcc: this.bcc(),
+			replyTo: this.replyTo(),
+			requestReadReceipt: this.requestReadReceipt(),
+			requestDsn: this.requestDsn(),
+			requireTLS: this.requireTLS(),
+			markAsImportant: this.markAsImportant(),
+			sign: this.doSign(),
+			encrypt: this.doEncrypt(),
+			subject: this.subject(),
+			bodyHtml,
+			bodyText: htmlToPlain(bodyHtml),
+			threadAnchor: oLastMessage ? {
+				account: oLastMessage.account || AccountUserStore.email(),
+				folder: oLastMessage.folder,
+				uid: oLastMessage.uid
+			} : null
+		};
+	}
+
+	async loadAiAttachments(attachments = []) {
+		for (const attachment of attachments) {
+			const loaded = await window.snappyDesktop.ai.readAttachment(attachment.path),
+				file = fileFromBase64(loaded.data, loaded.name);
+			this.oJua.addFile({ fileName: loaded.name, size: loaded.size, file });
+		}
+	}
+
+	async waitForAiAttachments() {
+		const started = Date.now();
+		while (this.attachmentsInProcess().length && Date.now() - started < 120000) {
+			await new Promise(resolve => setTimeout(resolve, 150));
+		}
+		if (this.attachmentsInProcess().length) throw new Error(i18n('COMPOSE/AI_ATTACHMENT_TIMEOUT'));
+		if (this.attachmentsInError().length) throw new Error(i18n('COMPOSE/AI_ATTACHMENT_ERROR'));
+	}
+
+	async switchAiSourceAccount(source, draft, responseMessage) {
+		sessionStorage.setItem(AiPendingComposeKey, JSON.stringify({
+			draft,
+			responseMessage: String(responseMessage || draft.summary || ''),
+			chatMessages: this.aiChatMessages()
+		}));
+		return new Promise((resolve, reject) => {
+			Remote.request('AccountSwitch', error => {
+				if (error) {
+					sessionStorage.removeItem(AiPendingComposeKey);
+					reject(new Error(i18n('COMPOSE/AI_ACCOUNT_SWITCH_ERROR')));
+					return;
+				}
+				ComposePopupView.inEdit(true);
+				this.close();
+				setTimeout(() => rl.route.reload(), 20);
+				resolve(false);
+			}, { Email: source.account });
+		});
+	}
+
+	async applyAiDraft(draft, options = {}) {
+		const mode = aiComposeType(draft.mode),
+			usesSource = [ComposeType.Reply, ComposeType.ReplyAll, ComposeType.Forward].includes(mode),
+			source = aiSourceMessage(draft.sourceMessage);
+		if (!options.sourceAlreadyApplied && source) {
+			this.initOnShow({ mode, message: await loadAiSourceMessage(source) }, true);
+		} else if (!options.sourceAlreadyApplied && usesSource && oLastMessage && mode !== this.aiComposeType) {
+			this.initOnShow({ mode, message: oLastMessage }, true);
+		} else if (usesSource && !oLastMessage) {
+			throw new Error(i18n('COMPOSE/AI_SOURCE_MESSAGE_ERROR'));
+		}
+		this.aiComposeType = mode;
+		const requestedAccount = String(draft.senderAccount || '').toLowerCase(),
+			requestedEmail = String(draft.from?.email || '').toLowerCase(),
+			identity = SenderIdentityUserStore.find(item =>
+				(!requestedAccount || String(item.accountEmail || '').toLowerCase() === requestedAccount)
+				&& (!requestedEmail || String(item.email || '').toLowerCase() === requestedEmail)
+			);
+		if (identity && !this.senderManuallySelected()) this.currentIdentity(identity);
+		this.to(draftAddressLine(draft.to));
+		this.cc(draftAddressLine(draft.cc));
+		this.bcc(draftAddressLine(draft.bcc));
+		this.showCc(Boolean(this.cc()));
+		this.showBcc(Boolean(this.bcc()));
+		if (Array.isArray(draft.replyTo)) {
+			this.replyTo(draftAddressLine(draft.replyTo));
+			this.showReplyTo(Boolean(this.replyTo()));
+		}
+		if ('boolean' === typeof draft.requestReadReceipt) this.requestReadReceipt(draft.requestReadReceipt);
+		if ('boolean' === typeof draft.requestDsn) this.requestDsn(draft.requestDsn);
+		if ('boolean' === typeof draft.requireTLS) this.requireTLS(draft.requireTLS);
+		if ('boolean' === typeof draft.markAsImportant) this.markAsImportant(draft.markAsImportant);
+		if ('boolean' === typeof draft.sign) this.doSign(draft.sign && this.canSign());
+		if ('boolean' === typeof draft.encrypt) this.doEncrypt(draft.encrypt && this.canEncrypt());
+		this.subject(String(draft.subject || ''));
+		this.editor(editor => {
+			editor.setHtml(`${draft.bodyHtml || encodeHtml(draft.bodyText || '')}${this.aiQuotedHtml || ''}`);
+			if (draft.includeSignature) this.setSignature(this.currentIdentity(), this.aiComposeType);
+		});
+		await this.loadAiAttachments(draft.attachments);
+		this.aiSummary(String(draft.summary || ''));
+		this.aiJustApplied(true);
+		setTimeout(() => this.aiJustApplied(false), 700);
+		return true;
+	}
+
+	async runAiAssist(action, instruction) {
+		if (this.aiBusy()) return;
+		if (!window.snappyDesktop?.ai?.compose) {
+			this.aiError(i18n('COMPOSE/AI_DESKTOP_REQUIRED'));
+			return;
+		}
+		this.aiBusy(true);
+		this.aiError('');
+		this.aiSummary('');
+		try {
+			const draft = await window.snappyDesktop.ai.compose({
+				action,
+				instruction: instruction || '',
+				context: this.aiContext(),
+				locale: LanguageStore.language()
+			});
+			const draftApplied = await this.applyAiDraft(draft);
+			this.aiDelegationMode(false);
+			if (draftApplied && this.aiSendWithoutConfirmation()) {
+				await this.waitForAiAttachments();
+				this.sendCommand();
+			}
+		} catch (error) {
+			this.aiError(error.message || String(error));
+		} finally {
+			this.aiBusy(false);
+		}
+	}
+
+	submitAiCommand() {
+		const instruction = this.aiInstruction().trim();
+		if (instruction) this.runAiAssist(this.aiDelegationMode() ? 'delegate' : 'command', instruction);
+	}
+
+	rewriteWithAi() {
+		this.runAiAssist('rewrite', this.aiInstruction().trim());
+	}
+
 	onHide() {
 		// Stop autosave
 		clearTimeout(this.iTimer);
+		clearInterval(this.aiChatTimer);
+		this.cancelPreSend();
 
 		ComposePopupView.inEdit() || this.reset();
 
@@ -790,7 +1463,10 @@ export class ComposePopupView extends AbstractViewPopup {
 	 * @param {string=} sCustomSubject = null
 	 * @param {string=} sCustomPlainText = null
 	 */
-	onShow(type, oMessageOrArray, aToEmails, aCcEmails, aBccEmails, sCustomSubject, sCustomPlainText) {
+	onShow(type, oMessageOrArray, aToEmails, aCcEmails, aBccEmails, sCustomSubject, sCustomPlainText, aiOptions) {
+		this.minimized(false);
+		// Auto-send is an explicit, one-draft consent and never carries across openings.
+		this.aiSendWithoutConfirmation(false);
 		this.autosaveStart();
 
 		this.viewModelDom.dataset.wysiwyg = SettingsUserStore.editorDefaultType();
@@ -831,6 +1507,23 @@ export class ComposePopupView extends AbstractViewPopup {
 		}
 
 		ComposePopupView.inEdit(false);
+		setTimeout(() => {
+			if (aiOptions?.restoreDraft) {
+				if (Array.isArray(aiOptions.restoreChat)) this.aiChatMessages(aiOptions.restoreChat);
+				this.applyAiDraft(aiOptions.restoreDraft, { sourceAlreadyApplied: true }).then(() => {
+					if (aiOptions.restoreMessage) {
+						this.aiChatMessages.push(this.aiChatMessage('assistant', aiOptions.restoreMessage));
+					}
+					this.scrollAiChat();
+				}).catch(error => {
+					this.aiError(error.message || String(error));
+				});
+			} else if (aiOptions?.instruction) {
+				this.sendAiChat(aiOptions.instruction);
+			} else if (aiOptions?.delegate) {
+				this.focusAiCommand();
+			}
+		}, 180);
 		// Chrome bug #298
 //		alreadyFullscreen = isFullscreen();
 //		alreadyFullscreen || (ThemeStore.isMobile() && toggleFullscreen());
@@ -839,7 +1532,7 @@ export class ComposePopupView extends AbstractViewPopup {
 	/**
 	 * @param {object} options
 	 */
-	initOnShow(options) {
+	initOnShow(options, preserveAiSession = false) {
 
 		const
 //			excludeEmail = new Set(),
@@ -853,7 +1546,8 @@ export class ComposePopupView extends AbstractViewPopup {
 			excludeEmail[mEmail] = true;
 		}
 
-		this.reset();
+		this.reset(preserveAiSession);
+		this.aiComposeType = options.mode;
 
 		let identity = null;
 		if (oLastMessage) {
@@ -862,12 +1556,12 @@ export class ComposePopupView extends AbstractViewPopup {
 				case ComposeType.ReplyAll:
 				case ComposeType.Forward:
 				case ComposeType.ForwardAsAttachment:
-					identity = findIdentity(oLastMessage.to.concat(oLastMessage.cc, oLastMessage.bcc))
-						|| findIdentity(oLastMessage.from)
+					identity = findIdentity(oLastMessage.to.concat(oLastMessage.cc, oLastMessage.bcc), oLastMessage.account)
+						|| findIdentity(oLastMessage.from, oLastMessage.account)
 						/* || findIdentity(oLastMessage.deliveredTo)*/;
 					break;
 				case ComposeType.Draft:
-					identity = findIdentity(oLastMessage.from.concat(oLastMessage.replyTo));
+					identity = findIdentity(oLastMessage.from.concat(oLastMessage.replyTo), oLastMessage.account);
 					break;
 				// no default
 //				case ComposeType.Empty:
@@ -883,7 +1577,10 @@ export class ComposePopupView extends AbstractViewPopup {
 			identity.name = oLastMessage.to[0].name;
 			identity.email = oLastMessage.to[0].email;
 		}
-		identity = identity || IdentityUserStore()[0];
+		identity = identity
+			|| SenderIdentityUserStore.find(item => item.accountEmail === AccountUserStore.email())
+			|| SenderIdentityUserStore()[0]
+			|| IdentityUserStore()[0];
 		if (identity) {
 //			excludeEmail.add(identity.email);
 			excludeEmail[identity.email] = true;
@@ -1017,6 +1714,9 @@ export class ComposePopupView extends AbstractViewPopup {
 			}
 
 			this.editor(editor => {
+				if ([ComposeType.Reply, ComposeType.ReplyAll, ComposeType.Forward].includes(options.mode)) {
+					this.aiQuotedHtml = sText;
+				}
 				usePlain ? (editor.modePlain() | editor.setPlain(sText)) : editor.setHtml(sText);
 				this.setSignature(identity, options.mode);
 				this.setFocusInPopup();
@@ -1098,6 +1798,7 @@ export class ComposePopupView extends AbstractViewPopup {
 	}
 
 	onBuild(dom) {
+		this.buildMinimizedDock();
 		// initUploader
 		const oJua = new Jua({
 				action: serverRequest('Upload'),
@@ -1105,6 +1806,7 @@ export class ComposePopupView extends AbstractViewPopup {
 				dragAndDropElement: dom.querySelector('.b-attachment-place')
 			}),
 			attachmentSizeLimit = pInt(SettingsGet('attachmentLimit'));
+		this.oJua = oJua;
 
 		oJua
 			.on('onDragEnter', () => {
@@ -1196,6 +1898,13 @@ export class ComposePopupView extends AbstractViewPopup {
 
 		this.addAttachmentEnabled(true);
 
+		window.snappyDesktop?.ai?.onEvent?.(event => {
+			if ('activity' !== event?.type || event.data?.activityId !== this.aiChatRequestId()) return;
+			if ('completed' !== event.data.phase) {
+				this.aiChatActivity(this.aiChatActivityLabel(event.data));
+			}
+		});
+
 		addShortcut('q', 'meta', ScopeCompose, ()=>false);
 		addShortcut('w', 'meta', ScopeCompose, ()=>false);
 
@@ -1210,7 +1919,7 @@ export class ComposePopupView extends AbstractViewPopup {
 		});
 
 		addShortcut('s', 'meta', ScopeCompose, () => {
-			this.saveCommand();
+			this.focusAiCommand();
 			return false;
 		});
 		addShortcut('save', '', ScopeCompose, () => {
@@ -1334,12 +2043,26 @@ export class ComposePopupView extends AbstractViewPopup {
 		);
 	}
 
-	reset() {
+	reset(preserveAiSession = false) {
+		this.minimized(false);
+		this.cancelPreSend();
+		if (!preserveAiSession) this.senderManuallySelected(false);
 		this.to('');
 		this.cc('');
 		this.bcc('');
 		this.replyTo('');
 		this.subject('');
+		if (!preserveAiSession) {
+			this.aiInstruction('');
+			this.aiBusy(false);
+			this.aiError('');
+			this.aiSummary('');
+			this.aiSendWithoutConfirmation(false);
+			this.aiJustApplied(false);
+			this.aiDelegationMode(false);
+			this.resetAiChat();
+		}
+		this.aiQuotedHtml = '';
 
 		this.requestDsn(SettingsUserStore.requestDsn());
 		this.requestReadReceipt(SettingsUserStore.requestReadReceipt());
@@ -1483,6 +2206,7 @@ export class ComposePopupView extends AbstractViewPopup {
 			identity = this.currentIdentity(),
 			params = {
 				identityID: identity.id(),
+				senderAccount: this.senderAccount(),
 				messageFolder: this.draftsFolder(),
 				messageUid: this.draftUid(),
 				saveFolder: sSaveFolder,

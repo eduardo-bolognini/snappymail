@@ -146,6 +146,15 @@
 			color: #DA4F49;
 		}
 
+		.listWarning {
+			background: color-mix(in srgb, #d98900 10%, transparent);
+			border-bottom: 1px solid color-mix(in srgb, #d98900 28%, transparent);
+			color: #7b4a00;
+			font-size: 12px;
+			padding: 8px 12px;
+			text-align: center;
+		}
+
 		.listSearchDesc {
 			font-size: 114%;
 			padding: 12px;
@@ -172,14 +181,24 @@
 	}
 }
 
-.messageListItem > div + div {
-	display: flex;
-	overflow: hidden;
-	padding: 5px 0 5px 5px;
+.messageListPlace {
+	min-width: 0;
+	overflow-x: hidden;
 	width: 100%;
 }
 
+.messageListItem > div + div {
+	box-sizing: border-box;
+	display: flex;
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	padding: 5px 0 5px 5px;
+	width: auto;
+}
+
 .messageListItem {
+	box-sizing: border-box;
 	cursor: pointer;
 	border: 0;
 	border-bottom: 1px solid rgba(153, 153, 153, 0.2);
@@ -187,7 +206,10 @@
 	display: flex;
 	font-size: 90%;
 	line-height: 2;
+	min-width: 0;
+	overflow: hidden;
 	position: relative;
+	width: 100%;
 /*
 	> * {
 		display: flex;
@@ -385,6 +407,7 @@ html:not(.sm-msgView-bottom):not(.sm-msgView-side) .message-selected #V-MailMess
 	}
 
 	.sm-msgView-side #V-MailMessageList {
+		flex: 0 0 auto;
 		width: unset;
 
 		.messageList {

@@ -156,7 +156,14 @@ trait Messages
 
 	public function DoSendMessage() : array
 	{
-		$oAccount = $this->initMailClientConnection();
+		$oStorageAccount = $this->getAccountFromToken();
+		$oStorageMailClient = $this->initMailClientConnection();
+		$sSenderAccount = \trim((string) $this->GetActionParam('senderAccount', ''));
+		$oAccount = $oStorageAccount;
+		$oMailClient = $oStorageMailClient;
+		if ($sSenderAccount && 0 !== \strcasecmp($sSenderAccount, $oStorageAccount->Email())) {
+			[$oAccount, $oMailClient] = $this->aiMailClient($sSenderAccount);
+		}
 /*
 		$aAuth = $this->GetActionParam('auth', null);
 		if ($aAuth) {
@@ -174,7 +181,7 @@ trait Messages
 		$sSaveFolder = $this->GetActionParam('saveFolder', '');
 		$aDraftInfo = $this->GetActionParam('draftInfo', null);
 
-		$oMessage = $this->buildMessage($oAccount, false);
+		$oMessage = $this->buildMessage($oAccount, false, $oStorageAccount);
 
 		$this->Plugins()->RunHook('filter.send-message', array($oMessage));
 
@@ -205,10 +212,10 @@ trait Messages
 							{
 								case 'reply':
 								case 'reply-all':
-									$this->MailClient()->MessageSetFlag($sDraftInfoFolder, new SequenceSet($iDraftInfoUid), MessageFlag::ANSWERED);
+									$oMailClient->MessageSetFlag($sDraftInfoFolder, new SequenceSet($iDraftInfoUid), MessageFlag::ANSWERED);
 									break;
 								case 'forward':
-									$this->MailClient()->MessageSetFlag($sDraftInfoFolder, new SequenceSet($iDraftInfoUid), MessageFlag::FORWARDED);
+									$oMailClient->MessageSetFlag($sDraftInfoFolder, new SequenceSet($iDraftInfoUid), MessageFlag::FORWARDED);
 									break;
 							}
 						}
@@ -252,7 +259,7 @@ trait Messages
 
 						try
 						{
-							$this->ImapClient()->MessageAppendStream(
+							$oMailClient->ImapClient()->MessageAppendStream(
 								$sSaveFolder, $rAppendMessageStream, $iAppendMessageStreamSize,
 								array(MessageFlag::SEEN)
 							);
@@ -267,7 +274,7 @@ trait Messages
 									$oException = null;
 									try
 									{
-										$this->ImapClient()->MessageAppendStream(
+										$oMailClient->ImapClient()->MessageAppendStream(
 											$sSentFolder, $rAppendMessageStream, $iAppendMessageStreamSize,
 											array(MessageFlag::SEEN)
 										);
@@ -292,14 +299,14 @@ trait Messages
 						\fclose($rMessageStream);
 					}
 
-					$this->deleteMessageAttachments($oAccount);
+					$this->deleteMessageAttachments($oStorageAccount);
 
 					$sDraftFolder = $this->GetActionParam('messageFolder', '');
 					$iDraftUid = (int) $this->GetActionParam('messageUid', 0);
 					if (\strlen($sDraftFolder) && 0 < $iDraftUid) {
 						try
 						{
-							$this->ImapClient()->MessageDelete($sDraftFolder, new SequenceSet($iDraftUid));
+							$oStorageMailClient->ImapClient()->MessageDelete($sDraftFolder, new SequenceSet($iDraftUid));
 						}
 						catch (\Throwable $oException)
 						{
@@ -971,8 +978,9 @@ trait Messages
 	/**
 	 * called by DoSaveMessage and DoSendMessage
 	 */
-	private function buildMessage(Account $oAccount, bool $bWithDraftInfo = true) : \MailSo\Mime\Message
+	private function buildMessage(Account $oAccount, bool $bWithDraftInfo = true, ?Account $oStorageAccount = null) : \MailSo\Mime\Message
 	{
+		$oStorageAccount = $oStorageAccount ?: $oAccount;
 		$oMessage = new \MailSo\Mime\Message();
 
 		if ($this->Config()->Get('security', 'hide_x_mailer_header', true)) {
@@ -1137,9 +1145,9 @@ trait Messages
 				$sContentLocation = (string) $aData['location'];
 				$sMimeType = (string) $aData['type'];
 
-				$rResource = $this->FilesProvider()->GetFile($oAccount, $sTempName);
+				$rResource = $this->FilesProvider()->GetFile($oStorageAccount, $sTempName);
 				if (\is_resource($rResource)) {
-					$iFileSize = $this->FilesProvider()->FileSize($oAccount, $sTempName);
+					$iFileSize = $this->FilesProvider()->FileSize($oStorageAccount, $sTempName);
 
 					$oMessage->Attachments()->append(
 						new \MailSo\Mime\Attachment($rResource, $sFileName, $iFileSize, $bIsInline,

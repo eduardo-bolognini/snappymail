@@ -1,0 +1,59 @@
+:root {
+  color-scheme: light;
+  font-family: "Avenir Next", Avenir, "Segoe UI Variable", "Helvetica Neue", sans-serif;
+  background: #f6f6f4;
+  color: #191918;
+  letter-spacing: 0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  align-items: center;
+  display: flex;
+  margin: 0;
+  min-height: 100vh;
+  padding: 56px;
+}
+
+main { width: 100%; }
+
+.mark { display: flex; gap: 5px; height: 26px; margin-bottom: 30px; }
+.mark span { background: #fc4b08; border-radius: 2px; transform: skewY(-18deg); width: 8px; }
+.mark span:nth-child(2) { background: #ff8d5b; height: 19px; margin-top: 3px; }
+.mark span:nth-child(3) { background: #d63f87; height: 12px; margin-top: 7px; }
+
+.eyebrow { color: #fc4b08; font-size: 10px; font-weight: 750; margin: 0 0 9px; }
+h1 { font-size: 32px; font-weight: 650; line-height: 1.15; margin: 0 0 12px; }
+p:not(.eyebrow) { color: #66635f; font-size: 14px; line-height: 1.5; margin: 0; }
+
+.progress {
+  background: #e1dfdb;
+  border-radius: 2px;
+  height: 3px;
+  margin-top: 32px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.progress span {
+  animation: loading 1.4s ease-in-out infinite, loading-color 2.6s linear infinite;
+  background: linear-gradient(90deg, #fc4b08, #ff8d5b, #d63f87, #fc4b08);
+  background-size: 220% 100%;
+  display: block;
+  height: 100%;
+  width: 38%;
+}
+
+@keyframes loading {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(290%); }
+}
+
+@keyframes loading-color {
+  to { background-position: 220% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress span { animation-duration: 3s; }
+}

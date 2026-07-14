@@ -30,3 +30,8 @@
 /vendors/vanillaqr.js/
 /integrations/nextcloud/rainloop
 /integrations/owncloud/rainloop
+.DS_Store
+desktop/node_modules/
+desktop/dist/
+desktop/runtime/
+desktop/domains/*.json

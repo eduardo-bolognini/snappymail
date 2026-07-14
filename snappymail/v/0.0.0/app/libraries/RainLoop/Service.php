@@ -209,7 +209,9 @@ abstract class Service
 			} else {
 				$aTemplateParameters['{{BaseAppBootCss}}'] = \file_get_contents(APP_VERSION_ROOT_PATH.'static/css/boot'.$sAppCssMin.'.css');
 				$aTemplateParameters['{{BaseAppBootScript}}'] = \file_get_contents(APP_VERSION_ROOT_PATH.'static/js'.($sAppJsMin ? '/min' : '').'/boot'.$sAppJsMin.'.js');
-				$aTemplateParameters['{{BaseAppMainCssLink}}'] = Utils::WebStaticPath('css/'.($bAdmin ? 'admin' : 'app').$sAppCssMin.'.css');
+				$sMainCssPath = 'css/'.($bAdmin ? 'admin' : 'app').$sAppCssMin.'.css';
+				$iMainCssVersion = \filemtime(APP_VERSION_ROOT_PATH.'static/'.$sMainCssPath) ?: 0;
+				$aTemplateParameters['{{BaseAppMainCssLink}}'] = Utils::WebStaticPath($sMainCssPath).'?v='.$iMainCssVersion;
 				$aTemplateParameters['{{BaseAppThemeCss}}'] = \preg_replace('/\\s*([:;{},]+)\\s*/s', '$1', $oActions->compileCss($sThemeName, $bAdmin));
 				$aTemplateParameters['{{BaseLanguage}}'] = $oActions->compileLanguage($sLanguage, $bAdmin);
 				$aTemplateParameters['{{BaseTemplates}}'] = Utils::ClearHtmlOutput($oServiceActions->compileTemplates($bAdmin));

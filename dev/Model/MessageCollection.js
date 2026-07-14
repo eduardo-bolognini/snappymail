@@ -30,7 +30,8 @@ export class MessageCollectionModel extends AbstractCollectionModel
 		let msg = MessageUserStore.message();
 		return super.reviveFromJson(object, message => {
 			// If message is currently viewed, use that.
-			if (msg && msg.hash === message.hash) {
+			if (msg && msg.hash === message.hash
+				&& (!(message.account || msg.account) || msg.account === message.account)) {
 				msg.revivePropertiesFromJson(message);
 				message = msg;
 			} else {

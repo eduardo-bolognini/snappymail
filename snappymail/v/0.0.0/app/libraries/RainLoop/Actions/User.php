@@ -41,7 +41,11 @@ trait User
 				new \SnappyMail\SensitiveString($this->GetActionParam('Password', ''))
 			);
 		} catch (\Throwable $oException) {
-			$this->loginErrorDelay();
+			if (!($oException instanceof ClientException
+				&& Notifications::DomainNotAllowed === $oException->getCode())
+			) {
+				$this->loginErrorDelay();
+			}
 			throw $oException;
 		}
 

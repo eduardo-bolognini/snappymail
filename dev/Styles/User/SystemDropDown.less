@@ -1,33 +1,287 @@
 
-#top-system-dropdown-id {
-	padding: 0 6px;
-}
-
 .rl-left-panel-disabled #more-list-dropdown-id + .dropdown-menu {
 	position: fixed;
 	top: 40px;
 }
 
 #V-SystemDropDown {
+	border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, .12));
+	box-sizing: border-box;
+	flex: 0 0 auto;
+	padding: 10px 8px 8px;
+	width: 100%;
 
-	position: absolute;
-	top: 0;
-	right: 0;
-	padding: 10px @rlLowMargin;
-	z-index: 103;
+	.sidebar-ai-button {
+		align-items: center;
+		background: #171a1a;
+		border: 1px solid #171a1a;
+		border-radius: 6px;
+		box-sizing: border-box;
+		color: #fff;
+		cursor: pointer;
+		display: grid;
+		font-weight: 700;
+		gap: 9px;
+		grid-template-columns: 30px minmax(0, 1fr) 16px;
+		height: 42px;
+		margin: 0 0 9px;
+		padding: 5px 8px;
+		text-align: left;
+		width: 100%;
+		transition: background-color 150ms ease, border-color 150ms ease, transform 180ms cubic-bezier(.16, 1, .3, 1);
 
-	.email-title {
-		text-overflow: ellipsis;
+		&:hover,
+		&:focus-visible {
+			background: #292e2e;
+			border-color: #292e2e;
+			transform: translateY(-1px);
+		}
+
+		&:active {
+			transform: translateY(0) scale(.99);
+		}
+	}
+
+	.sidebar-ai-mark {
+		align-items: center;
+		background: #fc4b08;
+		border-radius: 5px;
+		color: #fff;
+		display: flex;
+		font-size: 16px;
+		height: 30px;
+		justify-content: center;
+		width: 30px;
+	}
+
+	.sidebar-ai-label {
 		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.sidebar-ai-arrow {
+		font-size: 14px;
+		opacity: .7;
+	}
+
+	.sidebar-accounts-heading {
+		align-items: center;
+		display: flex;
+		height: 28px;
+		padding: 0 4px;
+	}
+
+	.sidebar-accounts-label {
+		font-size: 11px;
+		font-weight: 700;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		text-transform: uppercase;
+		white-space: nowrap;
+	}
+
+	.sidebar-account-add {
+		margin-left: auto;
+	}
+
+	.sidebar-account-add,
+	.sidebar-account-actions button {
+		background: transparent;
+		border: 0;
+		color: inherit;
+		cursor: pointer;
+		height: 28px;
+		opacity: .65;
+		padding: 0;
+		width: 28px;
+
+		&:hover,
+		&:focus-visible {
+			opacity: 1;
+		}
+	}
+
+	.sidebar-account-list {
+		list-style: none;
+		margin: 2px 0 6px;
+		max-height: 26vh;
+		overflow: auto;
+		padding: 0;
+		position: relative;
+
+		&.is-loading {
+			min-height: 42px;
+			pointer-events: none;
+
+			&::after {
+				animation: sidebar-skeleton 1.25s ease-in-out infinite;
+				background: linear-gradient(90deg, #ebe9e5 20%, #f8f7f5 45%, #ebe9e5 70%);
+				background-size: 220% 100%;
+				border-radius: 6px;
+				content: '';
+				inset: 1px 0;
+				position: absolute;
+			}
+		}
+
+		li {
+			margin: 2px 0;
+		}
+	}
+
+	.sidebar-all-inboxes {
+		margin: 2px 0 5px;
+
+		.sidebar-account-avatar {
+			background: var(--focus-accent, #fc4b08);
+			border-color: var(--focus-accent, #fc4b08);
+			color: #fff;
+		}
+	}
+
+	.sidebar-account-button {
+		align-items: center;
+		background: transparent;
+		border: 0;
+		border-radius: 6px;
+		box-sizing: border-box;
+		color: inherit;
+		cursor: pointer;
+		display: grid;
+		gap: 9px;
+		grid-template-columns: 30px minmax(0, 1fr) auto;
+		height: 40px;
+		padding: 5px 7px;
+		text-align: left;
+			width: 100%;
+			transition: background-color 140ms ease, color 140ms ease, transform 180ms cubic-bezier(.16, 1, .3, 1);
+
+		&:hover,
+		&:focus-visible {
+			background: var(--folders-hover-bg-color, rgba(0, 0, 0, .08));
+				color: var(--folders-hover-color, inherit);
+				transform: translateX(2px);
+		}
+
+		&.selected {
+			background: var(--folders-selected-bg-color, rgba(0, 0, 0, .12));
+			color: var(--folders-selected-color, inherit);
+			font-weight: 700;
+		}
+	}
+
+	.sidebar-account-avatar {
+		align-items: center;
+		background: var(--btn-bg-clr, rgba(255, 255, 255, .7));
+		border: 1px solid var(--btn-border-clr, rgba(0, 0, 0, .14));
+		border-radius: 6px;
+		box-sizing: border-box;
+		display: flex;
+		font-size: 12px;
+		font-weight: 700;
+		height: 30px;
+		justify-content: center;
+		width: 30px;
+	}
+
+	.sidebar-account-name {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.sidebar-account-unread {
+		background: var(--unread-count-bg-color, #555);
+		border-radius: 9px;
+		color: var(--unread-count-color, #fff);
+		font-size: 10px;
+		font-weight: 700;
+		line-height: 18px;
+		min-width: 18px;
+		padding: 0 4px;
+		text-align: center;
+	}
+
+	.sidebar-contacts-section {
+		border-top: 1px solid var(--border-color, rgba(0, 0, 0, .12));
+		margin-top: 7px;
+		padding: 8px 0 6px;
+	}
+
+	.sidebar-section-heading {
+		font-size: 10px;
+		font-weight: 700;
+		opacity: .65;
+		padding: 0 4px 5px;
+		text-transform: uppercase;
+	}
+
+	.sidebar-contact-button {
+		align-items: center;
+		background: transparent;
+		border: 0;
+		border-radius: 6px;
+		box-sizing: border-box;
+		color: inherit;
+		cursor: pointer;
+		display: grid;
+		gap: 8px;
+		grid-template-columns: 28px minmax(0, 1fr) 14px;
+		min-height: 34px;
+		padding: 3px 6px;
+		text-align: left;
+		width: 100%;
+		transition: background-color 140ms ease, color 140ms ease, transform 180ms cubic-bezier(.16, 1, .3, 1);
+
+		&:hover,
+		&:focus-visible {
+			background: var(--folders-hover-bg-color, rgba(0, 0, 0, .08));
+				color: var(--folders-hover-color, inherit);
+				transform: translateX(2px);
+		}
+	}
+
+	.sidebar-contact-icon {
+		align-items: center;
+		color: var(--focus-accent, #fc4b08);
+		display: flex;
+		font-size: 15px;
+		height: 28px;
+		justify-content: center;
+		width: 28px;
+	}
+
+	.sidebar-contact-text {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.sidebar-contact-arrow {
+		font-size: 16px;
+		opacity: .5;
+		text-align: right;
+	}
+
+	.sidebar-account-actions {
+		display: flex;
+		gap: 2px;
+		padding: 0 3px;
+
+		button {
+			align-items: center;
+			display: inline-flex;
+			font-size: 15px;
+			justify-content: center;
+		}
 	}
 
 	.audioPlace {
 		cursor: pointer;
-		display: inline-block;
-		font-size: 214%;
-		height: 1em;
-		margin-right: 10px;
-		width: 1em;
+		height: 28px;
+		margin-left: auto;
+		width: 28px;
 
 		.stopIcon {
 			color: orange;
@@ -46,34 +300,60 @@
 		}
 	}
 
-	.accountPlace {
-		border-right: 1px solid var(--btn-border-clr, rgba(0, 0, 0, 0.2));
-		display: inline-block;
-		font-weight: 600;
-		line-height: 1.3;
-		margin: 0 6px -4px 0;
-		max-width: 25vw;
-/*		max-width: calc(100vw - 300px);*/
-		overflow: hidden;
-		padding-right: 6px;
-		text-overflow: ellipsis;
+}
+
+@keyframes sidebar-skeleton {
+	to { background-position: -220% 0; }
+}
+
+.rl-left-panel-disabled #V-SystemDropDown {
+	padding: 8px 6px;
+
+	.sidebar-accounts-heading {
+		justify-content: center;
+		padding: 0;
 	}
 
-	a[data-unread]::after {
-		content: attr(data-unread);
-		background-color: var(--unread-count-bg-color, #999);
-		border-radius: 1em;
-		color: var(--unread-count-color, #fff);
-		font-size: 80%;
-		line-height: 1.5em;
-		min-width: 1.7em;
-		padding: 1px 4px;
-		text-align: center;
-		text-shadow: 0 -1px 0 rgba(0,0,0,.25);
-		position: absolute;
-		right: 3px;
+	.sidebar-accounts-label,
+	.audioPlace,
+	.sidebar-ai-label,
+	.sidebar-ai-arrow,
+	.sidebar-account-name,
+	.sidebar-account-unread,
+	.sidebar-section-heading,
+	.sidebar-contact-text,
+	.sidebar-contact-arrow,
+	.sidebar-account-actions {
+		display: none !important;
 	}
 
+	.sidebar-account-add {
+		margin: 0;
+	}
+
+	.sidebar-account-button {
+		grid-template-columns: 30px;
+		justify-content: center;
+		padding: 5px;
+	}
+
+	.sidebar-ai-button {
+		grid-template-columns: 30px;
+		justify-content: center;
+		padding: 5px;
+	}
+
+	.sidebar-contacts-section {
+		border-top: 0;
+		margin-top: 4px;
+		padding: 4px 0;
+	}
+
+	.sidebar-contact-button {
+		grid-template-columns: 28px;
+		justify-content: center;
+		padding: 3px;
+	}
 }
 
 @keyframes equaliserBar {

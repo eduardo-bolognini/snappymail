@@ -25,6 +25,41 @@
 		<label data-i18n="GLOBAL/NAME"></label>
 		<input name="name" type="text" class="input-xlarge" data-bind="value: name">
 	</div>
+	<button type="button" class="account-manual-config-toggle" data-bind="visible: isNew, click: toggleManualConfig">
+		<span class="fontastic">⚙</span>
+		<span data-i18n="LOGIN/MANUAL_CONFIG"></span>
+	</button>
+	<section class="account-manual-server-settings" data-bind="visible: isNew() && manualConfig()">
+		<h4 data-i18n="LOGIN/MANUAL_TITLE"></h4>
+		<div class="account-manual-server-row">
+			<label for="account-imap-host">IMAP</label>
+			<input id="account-imap-host" name="DesktopImapHost" type="text" autocomplete="off" autocorrect="off" autocapitalize="off"
+				data-bind="textInput: imapHost, attr: {required: manualConfig}"
+				data-i18n="[placeholder]LOGIN/SERVER_HOST">
+			<input name="DesktopImapPort" type="number" min="1" max="65535" step="1"
+				data-bind="textInput: imapPort, attr: {required: manualConfig}"
+				data-i18n="[aria-label]LOGIN/PORT">
+			<select name="DesktopImapType" data-bind="value: imapType" data-i18n="[aria-label]LOGIN/SECURITY">
+				<option value="1">SSL/TLS</option>
+				<option value="2">STARTTLS</option>
+				<option value="0" data-i18n="LOGIN/SECURITY_NONE"></option>
+			</select>
+		</div>
+		<div class="account-manual-server-row">
+			<label for="account-smtp-host">SMTP</label>
+			<input id="account-smtp-host" name="DesktopSmtpHost" type="text" autocomplete="off" autocorrect="off" autocapitalize="off"
+				data-bind="textInput: smtpHost, attr: {required: manualConfig}"
+				data-i18n="[placeholder]LOGIN/SERVER_HOST">
+			<input name="DesktopSmtpPort" type="number" min="1" max="65535" step="1"
+				data-bind="textInput: smtpPort, attr: {required: manualConfig}"
+				data-i18n="[aria-label]LOGIN/PORT">
+			<select name="DesktopSmtpType" data-bind="value: smtpType" data-i18n="[aria-label]LOGIN/SECURITY">
+				<option value="1">SSL/TLS</option>
+				<option value="2">STARTTLS</option>
+				<option value="0" data-i18n="LOGIN/SECURITY_NONE"></option>
+			</select>
+		</div>
+	</section>
 </form>
 <footer>
 	<button form="accountform" class="btn buttonAddAccount">

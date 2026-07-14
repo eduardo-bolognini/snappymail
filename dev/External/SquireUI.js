@@ -107,45 +107,45 @@ class SquireUI
 				},
 				dir: {
 					dir_ltr: {
-						html: '⁋',
+						html: '<span class="g-icon g-icon--arrow-right" aria-hidden="true"></span>',
 						cmd: () => squire.setTextDirection('ltr')
 					},
 					dir_rtl: {
-						html: '¶',
+						html: '<span class="g-icon g-icon--arrow-left" aria-hidden="true"></span>',
 						cmd: () => squire.setTextDirection('rtl')
 					}
 				},
 				colors: {
 					textColor: {
-						html: 'A<sub>▾</sub>',
+						html: '<span class="g-icon g-icon--font-case" aria-hidden="true"></span>',
 						cmd: doClr('color')
 					},
 					backgroundColor: {
-						html: '🎨', /* ▧ */
+						html: '<span class="g-icon g-icon--palette" aria-hidden="true"></span>',
 						cmd: doClr('backgroundColor')
 					},
 				},
 				inline: {
 					bold: {
-						html: 'B',
+						html: '<span class="g-icon g-icon--bold" aria-hidden="true"></span>',
 						cmd: () => this.doAction('bold'),
 						key: 'B',
 						matches: 'B,STRONG'
 					},
 					italic: {
-						html: 'I',
+						html: '<span class="g-icon g-icon--italic" aria-hidden="true"></span>',
 						cmd: () => this.doAction('italic'),
 						key: 'I',
 						matches: 'I'
 					},
 					underline: {
-						html: '<u>U</u>',
+						html: '<span class="g-icon g-icon--underline" aria-hidden="true"></span>',
 						cmd: () => this.doAction('underline'),
 						key: 'U',
 						matches: 'U'
 					},
 					strike: {
-						html: '<s>S</s>',
+						html: '<span class="g-icon g-icon--strikethrough" aria-hidden="true"></span>',
 						cmd: () => this.doAction('strikethrough'),
 						key: 'Shift + 7',
 						matches: 'S'
@@ -157,7 +157,7 @@ class SquireUI
 						matches: 'SUB'
 					},
 					sup: {
-						html: 'Xⁿ',
+						html: '<span class="g-icon g-icon--superscript" aria-hidden="true"></span>',
 						cmd: () => this.doAction('superscript'),
 						key: 'Shift + 6',
 						matches: 'SUP'
@@ -165,19 +165,19 @@ class SquireUI
 				},
 				block: {
 					ol: {
-						html: '#',
+						html: '<span class="g-icon g-icon--list-ol" aria-hidden="true"></span>',
 						cmd: () => this.doList('OL'),
 						key: 'Shift + 8',
 						matches: 'OL'
 					},
 					ul: {
-						html: '⋮',
+						html: '<span class="g-icon g-icon--list-ul" aria-hidden="true"></span>',
 						cmd: () => this.doList('UL'),
 						key: 'Shift + 9',
 						matches: 'UL'
 					},
 					quote: {
-						html: '"',
+						html: '<span class="g-icon g-icon--quote-open" aria-hidden="true"></span>',
 						cmd: () => {
 							let parent = squire.getSelectionClosest('UL,OL,BLOCKQUOTE')?.nodeName;
 							('BLOCKQUOTE' == parent) ? squire.decreaseQuoteLevel() : squire.increaseQuoteLevel();
@@ -185,19 +185,19 @@ class SquireUI
 						matches: 'BLOCKQUOTE'
 					},
 					indentDecrease: {
-						html: '⇤',
+						html: '<span class="g-icon g-icon--text-outdent" aria-hidden="true"></span>',
 						cmd: () => squire.changeIndentationLevel('decrease'),
 						key: ']'
 					},
 					indentIncrease: {
-						html: '⇥',
+						html: '<span class="g-icon g-icon--text-indent" aria-hidden="true"></span>',
 						cmd: () => squire.changeIndentationLevel('increase'),
 						key: '['
 					}
 				},
 				targets: {
 					link: {
-						html: '🔗',
+						html: '<span class="g-icon g-icon--link" aria-hidden="true"></span>',
 						cmd: () => {
 							let node = squire.getSelectionClosest('A'),
 								url = prompt("Link", node?.href || "https://");
@@ -208,7 +208,7 @@ class SquireUI
 						matches: 'A'
 					},
 					imageUrl: {
-						html: '🖼️',
+						html: '<span class="g-icon g-icon--picture" aria-hidden="true"></span>',
 						cmd: () => {
 							let node = squire.getSelectionClosest('IMG'),
 								src = prompt("Image", node?.src || "https://");
@@ -217,7 +217,7 @@ class SquireUI
 						matches: 'IMG'
 					},
 					imageUpload: {
-						html: '📂️',
+						html: '<span class="g-icon g-icon--folder-arrow-up" aria-hidden="true"></span>',
 						cmd: () => browseImage.click(),
 						matches: 'IMG'
 					}
@@ -229,17 +229,17 @@ class SquireUI
 */
 				changes: {
 					undo: {
-						html: '↶',
+						html: '<span class="g-icon g-icon--arrow-rotate-left" aria-hidden="true"></span>',
 						cmd: () => squire.undo(),
 						key: 'Z'
 					},
 					redo: {
-						html: '↷',
+						html: '<span class="g-icon g-icon--arrow-rotate-right" aria-hidden="true"></span>',
 						cmd: () => squire.redo(),
 						key: 'Y'
 					},
 					source: {
-						html: '👁',
+						html: '<span class="g-icon g-icon--code" aria-hidden="true"></span>',
 						cmd: btn => {
 							this.setMode('source' == this.mode ? 'wysiwyg' : 'source');
 							btn.classList.toggle('active', 'source' == this.mode);
@@ -249,7 +249,7 @@ class SquireUI
 
 				clear: {
 					removeStyle: {
-						html: '⎚',
+						html: '<span class="g-icon g-icon--eraser" aria-hidden="true"></span>',
 						cmd: () => squire.setStyle()
 					}
 				}
@@ -307,12 +307,28 @@ class SquireUI
 
 		dispatchEvent(new CustomEvent('squire-toolbar', {detail:{squire:this,actions:actions}}));
 
-		toolbar.className = 'squire-toolbar btn-toolbar';
+		toolbar.className = 'squire-toolbar';
+		const
+			primaryToolbar = createElement('div'),
+			secondaryToolbar = createElement('details'),
+			secondaryToggle = createElement('summary'),
+			secondaryPanel = createElement('div'),
+			primaryActions = new Set(['bold', 'italic', 'underline', 'ol', 'ul', 'link', 'undo', 'redo']);
+
+		primaryToolbar.className = 'squire-toolbar-primary';
+		secondaryToolbar.className = 'squire-toolbar-more';
+		secondaryPanel.className = 'squire-toolbar-more-panel';
+		secondaryToggle.className = 'squire-toolbar-more-toggle';
+		secondaryToggle.innerHTML = '<span class="g-icon g-icon--sliders" aria-hidden="true"></span><span>' + i18n('GLOBAL/MORE') + '</span><span class="g-icon g-icon--chevron-down" aria-hidden="true"></span>';
+		secondaryToolbar.append(secondaryToggle, secondaryPanel);
+		toolbar.append(primaryToolbar, secondaryToolbar);
+
 		let group, action/*, touchTap*/;
 		for (group in actions) {
-			let toolgroup = createElement('div');
-			toolgroup.className = 'btn-group';
-			toolgroup.id = 'squire-toolgroup-'+group;
+			let primaryGroup = createElement('div'), secondaryGroup = createElement('div');
+			primaryGroup.className = secondaryGroup.className = 'btn-group';
+			primaryGroup.id = 'squire-toolgroup-'+group;
+			secondaryGroup.id = 'squire-toolgroup-'+group+'-more';
 			for (action in actions[group]) {
 				let cfg = actions[group][action], input, ev = 'click';
 				if (cfg.input) {
@@ -370,11 +386,22 @@ class SquireUI
 					input.title = ctrlKey + cfg.key;
 				}
 				input.dataset.action = action;
+				input.setAttribute('aria-label', cfg.hint || action);
 				input.tabIndex = -1;
 				cfg.input = input;
-				toolgroup.append(input);
+				if (primaryActions.has(action)) {
+					primaryGroup.append(input);
+				} else {
+					input.dataset.label = cfg.hint || action;
+					secondaryGroup.append(input);
+				}
 			}
-			toolgroup.children.length && toolbar.append(toolgroup);
+			if (primaryGroup.children.length) {
+				primaryToolbar.append(primaryGroup);
+			} else {
+				secondaryGroup.id = 'squire-toolgroup-'+group;
+			}
+			secondaryGroup.children.length && secondaryPanel.append(secondaryGroup);
 		}
 
 		this.modeSelect = actions.mode.plain.input;

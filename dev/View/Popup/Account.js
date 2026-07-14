@@ -1,4 +1,5 @@
 import { addObservablesTo } from 'External/ko';
+import { Notifications } from 'Common/Enums';
 import { getNotification } from 'Common/Translator';
 import { loadAccountsAndIdentities } from 'Common/UtilsUser';
 
@@ -16,6 +17,13 @@ export class AccountPopupView extends AbstractViewPopup {
 			name: '',
 			email: '',
 			password: '',
+			manualConfig: false,
+			imapHost: '',
+			imapPort: 993,
+			imapType: '1',
+			smtpHost: '',
+			smtpPort: 465,
+			smtpType: '1',
 
 			submitRequest: false,
 			submitError: '',
@@ -27,14 +35,23 @@ export class AccountPopupView extends AbstractViewPopup {
 		this.submitError('');
 	}
 
+	toggleManualConfig() {
+		this.manualConfig(!this.manualConfig());
+		this.hideError();
+	}
+
 	submitForm(form) {
 		if (!this.submitRequest() && form.reportValidity()) {
 			const data = new FormData(form);
 			data.set('new', this.isNew() ? 1 : 0);
+			data.set('DesktopManualConfig', this.manualConfig() ? 1 : 0);
 			this.submitRequest(true);
 			Remote.request('AccountSetup', (iError, data) => {
 					this.submitRequest(false);
 					if (iError) {
+						if (Notifications.DomainNotAllowed == iError) {
+							this.manualConfig(true);
+						}
 						this.submitError(getNotification(iError));
 						this.submitErrorAdditional(data?.messageAdditional);
 					} else {
@@ -51,6 +68,7 @@ export class AccountPopupView extends AbstractViewPopup {
 		this.submitRequest(false);
 		this.submitError('');
 		this.submitErrorAdditional('');
+		this.manualConfig(false);
 	}
 
 	onShow(account) {
@@ -58,5 +76,6 @@ export class AccountPopupView extends AbstractViewPopup {
 		this.isNew(!edit);
 		this.name(edit ? account.name : '');
 		this.email(edit ? account.email : '');
+		this.manualConfig(false);
 	}
 }

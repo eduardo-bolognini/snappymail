@@ -176,12 +176,12 @@ class Application extends \RainLoop\Config\AbstractConfig
 
 			'webmail' => array(
 
-				'title'                       => array('SnappyMail Webmail', 'Text displayed as page title'),
-				'loading_description'         => array('SnappyMail', 'Text displayed on startup'),
+				'title'                       => array('EasyMail', 'Text displayed as page title'),
+				'loading_description'         => array('EasyMail', 'Text displayed on startup'),
 				'favicon_url'                 => array(''),
 				'app_path'                    => array(''),
 
-				'theme'                       => array('Default', 'Theme used by default'),
+				'theme'                       => array('Focus', 'Theme used by default'),
 				'allow_themes'                => array(true, 'Allow theme selection on settings screen'),
 				'allow_user_background'       => array(false),
 
@@ -310,8 +310,8 @@ Values:
 			),
 
 			'plugins' => array(
-				'enable'       => array(false, 'Enable plugin support'),
-				'enabled_list' => array('', 'Comma-separated list of enabled plugins'),
+				'enable'       => array(true, 'Enable plugin support'),
+				'enabled_list' => array('login-autoconfig', 'Comma-separated list of enabled plugins'),
 			),
 
 			'defaults' => array(

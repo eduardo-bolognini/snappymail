@@ -559,7 +559,7 @@ class Actions
 
 		$aResult = array(
 			'Auth' => false,
-			'title' => $oConfig->Get('webmail', 'title', 'SnappyMail Webmail'),
+			'title' => $oConfig->Get('webmail', 'title', 'EasyMail'),
 			'loadingDescription' => $oConfig->Get('webmail', 'loading_description', 'SnappyMail'),
 			'Plugins' => array(),
 			'System' => array(
@@ -777,8 +777,10 @@ class Actions
 		$bAppJsDebug = $this->oConfig->Get('debug', 'javascript', false)
 			|| $this->oConfig->Get('debug', 'enable', false);
 
-		$aResult['StaticLibsJs'] = Utils::WebStaticPath('js/' . ($bAppJsDebug ? '' : 'min/') .
-			'libs' . ($bAppJsDebug ? '' : '.min') . '.js');
+		$sStaticLibsPath = 'js/' . ($bAppJsDebug ? '' : 'min/') .
+			'libs' . ($bAppJsDebug ? '' : '.min') . '.js';
+		$iStaticLibsVersion = \filemtime(APP_VERSION_ROOT_PATH . 'static/' . $sStaticLibsPath) ?: 0;
+		$aResult['StaticLibsJs'] = Utils::WebStaticPath($sStaticLibsPath) . '?v=' . $iStaticLibsVersion;
 
 		$this->oPlugins->InitAppData($bAdmin, $aResult, $oAccount);
 

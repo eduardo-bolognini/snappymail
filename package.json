@@ -1,7 +1,7 @@
 {
-  "name": "snappymail",
-  "title": "SnappyMail",
-  "description": "Simple, modern & fast web-based email client",
+  "name": "easymail",
+  "title": "EasyMail",
+  "description": "A focused desktop email client with local-first AI tools",
   "private": true,
   "version": "2.38.2",
   "homepage": "https://snappymail.eu",

@@ -55,6 +55,108 @@
 		height: 100%;
 	}
 
+	.message-ai-commandbar {
+		align-items: center;
+		background: rgba(255, 255, 255, .98);
+		border: 1px solid #e2e3e5;
+		border-radius: 8px;
+		bottom: 16px;
+		box-shadow: 0 12px 36px rgba(30, 32, 36, .14);
+		display: flex;
+		gap: 12px;
+		left: 20px;
+		margin: 0;
+		overflow: hidden;
+		padding: 6px;
+		position: absolute;
+		right: 20px;
+		transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+		z-index: 120;
+
+		&:focus-within {
+			border-color: rgba(252, 75, 8, .55);
+			box-shadow: 0 14px 40px rgba(30, 32, 36, .16), 0 0 0 3px rgba(252, 75, 8, .1);
+			transform: translateY(-1px);
+		}
+
+		input {
+			background: transparent;
+			border: 0;
+			box-shadow: none;
+			color: #202124;
+			flex: 1 1 auto;
+			font: 500 13px/1.4 var(--fontSans, sans-serif);
+			height: 36px;
+			min-width: 0;
+			outline: 0;
+			padding: 0;
+
+			&::placeholder {
+				color: #797b80;
+				font-weight: 400;
+				opacity: 1;
+			}
+		}
+
+		.message-ai-submit {
+			align-items: center;
+			background: #fc4b08;
+			border: 0;
+			border-radius: 6px;
+			box-shadow: 0 3px 10px rgba(252, 75, 8, .22);
+			color: #fff;
+			cursor: pointer;
+			display: inline-flex;
+			flex: 0 0 auto;
+			height: 36px;
+			justify-content: center;
+			transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+			width: 38px;
+
+			.g-icon {
+				height: 17px;
+				width: 17px;
+			}
+
+			&:hover:not(:disabled) {
+				background: #dc3d02;
+				box-shadow: 0 5px 14px rgba(252, 75, 8, .3);
+				transform: translateY(-1px);
+			}
+
+			&:active:not(:disabled) {
+				box-shadow: 0 2px 7px rgba(252, 75, 8, .24);
+				transform: translateY(0) scale(.96);
+			}
+
+			&:disabled {
+				background: #ebecee;
+				box-shadow: none;
+				color: #a6a8ad;
+				cursor: default;
+			}
+		}
+	}
+
+	.message-ai-identity {
+		align-items: center;
+		background: #fff1eb;
+		border-radius: 5px;
+		color: #d83e04;
+		display: inline-flex;
+		flex: 0 0 auto;
+		font: 650 11px/1 var(--fontSans, sans-serif);
+		gap: 6px;
+		height: 30px;
+		padding: 0 9px;
+		text-transform: uppercase;
+
+		.g-icon {
+			height: 15px;
+			width: 15px;
+		}
+	}
+
 	.b-message-view-checked-helper {
 		text-align: center;
 		font-size: 70px;
@@ -251,8 +353,10 @@
 
 #messageItem {
 
+	box-sizing: border-box;
 	height: 100%;
 	overflow: auto;
+	padding-bottom: 76px;
 	scroll-behavior: smooth;
 
 	.loading {

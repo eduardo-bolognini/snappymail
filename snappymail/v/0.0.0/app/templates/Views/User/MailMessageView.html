@@ -1,22 +1,22 @@
 <div class="top-toolbar g-ui-user-select-none btn-toolbar">
 	<div class="btn-group" data-i18n="[title]GLOBAL/CLOSE">
-		<a class="btn buttonClose fontastic" data-bind="click: closeMessage">✖</a>
+		<a class="btn buttonClose" data-bind="click: closeMessage"><span class="g-icon g-icon--xmark" aria-hidden="true"></span></a>
 	</div>
 	<div class="btn-group" data-bind="visible: isDraftFolder()" data-i18n="[title]MESSAGE/BUTTON_EDIT">
-		<a class="btn btn-success buttonEdit fontastic" data-bind="command: editCommand">🖉</a>
+		<a class="btn btn-success buttonEdit" data-bind="command: editCommand"><span class="g-icon g-icon--pencil" aria-hidden="true"></span></a>
 	</div>
 	<div class="btn-group">
-		<a class="btn fontastic" data-bind="visible: archiveAllowed, command: archiveCommand" data-i18n="[title]GLOBAL/TO_ARCHIVE">🗄</a>
-		<a class="btn fontastic" data-bind="visible: canMarkAsSpam , command: spamCommand" data-i18n="[title]GLOBAL/TO_SPAM">⚠</a>
+		<a class="btn" data-bind="visible: archiveAllowed, command: archiveCommand" data-i18n="[title]GLOBAL/TO_ARCHIVE"><span class="g-icon g-icon--archive" aria-hidden="true"></span></a>
+		<a class="btn" data-bind="visible: canMarkAsSpam , command: spamCommand" data-i18n="[title]GLOBAL/TO_SPAM"><span class="g-icon g-icon--circle-exclamation" aria-hidden="true"></span></a>
 		<a class="btn" data-bind="visible: isSpamFolder, command: notSpamCommand" data-i18n="[title]GLOBAL/NOT_SPAM">
-			<i class="icon-check-mark-circle-two"></i>
+			<span class="g-icon g-icon--circle-check" aria-hidden="true"></span>
 		</a>
-		<a class="btn fontastic" data-bind="visible: !canBeUndeleted(), command: deleteCommand" data-i18n="[title]GLOBAL/DELETE">🗑</a>
+		<a class="btn" data-bind="visible: !canBeUndeleted(), command: deleteCommand" data-i18n="[title]GLOBAL/DELETE"><span class="g-icon g-icon--trash-bin" aria-hidden="true"></span></a>
 		<a class="btn fontastic" data-bind="visible: canBeUndeleted, command: undeleteCommand" data-i18n="[title]GLOBAL/UNDELETE"><div class=btn-rotate>🗑</div></a>
 	</div>
 	<div class="btn-group">
-		<a class="btn btn-thin buttonUp fontastic" data-bind="command: goUpCommand">❮</a>
-		<a class="btn btn-thin buttonDown fontastic" data-bind="command: goDownCommand">❯</a>
+		<a class="btn btn-thin buttonUp" data-bind="command: goUpCommand"><span class="g-icon g-icon--chevron-right icon-rotate-180" aria-hidden="true"></span></a>
+		<a class="btn btn-thin buttonDown" data-bind="command: goDownCommand"><span class="g-icon g-icon--chevron-right" aria-hidden="true"></span></a>
 	</div>
 </div>
 <div class="messageView">
@@ -42,7 +42,7 @@
 						data-bind="visible: 2 == msgDefaultAction(), command: replyAllCommand" data-i18n="[title]MESSAGE/BUTTON_REPLY_ALL">↞</a>
 				</span>
 				<div class="btn-group" data-bind="registerBootstrapDropdown: true, initDom: actionsMenu" style="display: inline-block">
-					<a class="btn btn-thin btn-transparent dropdown-toggle fontastic" id="more-view-dropdown-id" href="#" tabindex="-1">☰</a>
+				<a class="btn btn-thin btn-transparent dropdown-toggle" id="more-view-dropdown-id" href="#" tabindex="-1"><span class="g-icon g-icon--ellipsis" aria-hidden="true"></span></a>
 					<menu class="dropdown-menu right-edge" role="menu" aria-labelledby="more-view-dropdown-id">
 						<div data-bind="visible: !isDraftFolder()">
 							<li role="presentation">
@@ -336,5 +336,15 @@
 				</div>
 			</div>
 		</div>
+		<form class="message-ai-commandbar" data-bind="visible: canBeRepliedOrForwarded, submit: submitGlobalAiCommand">
+			<span class="message-ai-identity" aria-hidden="true">
+				<i class="g-icon g-icon--magic-wand"></i>
+				<span>Codex</span>
+			</span>
+			<input type="text" autocomplete="off" data-bind="textInput: aiGlobalInstruction, event: {keydown: aiGlobalKeydown}" data-i18n="[placeholder]COMPOSE/AI_GLOBAL_PLACEHOLDER">
+			<button class="message-ai-submit" type="submit" data-bind="enable: aiGlobalCanRun" data-i18n="[title]COMPOSE/AI_RUN">
+				<i class="g-icon g-icon--paper-plane" aria-hidden="true"></i>
+			</button>
+		</form>
 	</div>
 </div>

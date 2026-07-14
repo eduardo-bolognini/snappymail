@@ -32,9 +32,9 @@ class MailClient
 
 	private bool $bThreadSort = false;
 
-	function __construct()
+	function __construct(?\MailSo\Imap\ImapClient $oImapClient = null)
 	{
-		$this->oImapClient = new \MailSo\Imap\ImapClient;
+		$this->oImapClient = $oImapClient ?: new \MailSo\Imap\ImapClient;
 	}
 
 	public function ImapClient() : \MailSo\Imap\ImapClient

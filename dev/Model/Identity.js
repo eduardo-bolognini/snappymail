@@ -5,6 +5,8 @@ import { addObservablesTo, addComputablesTo } from 'External/ko';
 export class IdentityModel extends EmailModel /*AbstractModel*/ {
 	constructor() {
 		super();
+		this.accountEmail = '';
+		this.accountName = '';
 
 		addObservablesTo(this, {
 			id: '',

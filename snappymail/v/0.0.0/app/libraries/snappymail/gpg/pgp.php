@@ -50,7 +50,10 @@ class PGP extends Base implements \SnappyMail\PGP\PGPInterface
 		// How to use gpgme-json ?
 		$this->binary = static::findBinary('gpg');
 
-		$info = \preg_replace('/\R +/', ' ', `$this->binary --with-colons --list-config`);
+		$info = $this->binary
+			? (string) \shell_exec(\escapeshellarg($this->binary) . ' --with-colons --list-config')
+			: '';
+		$info = \preg_replace('/\R +/', ' ', $info);
 		if (\preg_match('/cfg:version:([0-9]+\\.[0-9]+\\.[0-9]+)/', $info, $match)) {
 			$this->version = $match[1];
 		}

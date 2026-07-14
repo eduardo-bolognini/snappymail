@@ -1,7 +1,10 @@
 <div class="b-toolbar btn-toolbar">
-	<a class="btn btn-thin fontastic toggleLeft" data-bind="click: toggleLeftPanel"></a>
-	<a class="btn" data-bind="click: backToInbox" data-icon="⬅" data-i18n="GLOBAL/BACK"></a>
+	<a class="btn btn-thin toggleLeft" data-bind="click: toggleLeftPanel"><span class="g-icon g-icon--bars" aria-hidden="true"></span></a>
+	<a class="btn" data-bind="click: backToInbox"><span class="g-icon g-icon--arrow-left" aria-hidden="true"></span><span data-i18n="GLOBAL/BACK"></span></a>
 </div>
 <nav data-bind="foreach: menu">
-	<a data-bind="css: {'selected': selected }, attr: { 'href': $root.link(route), 'data-i18n': label }"></a>
+	<a data-bind="css: {'selected': selected }, attr: { 'href': $root.link(route) }">
+		<span class="g-icon settings-menu-icon" data-bind="css: $root.menuIcon($data)" aria-hidden="true"></span>
+		<span data-bind="attr: {'data-i18n': label}"></span>
+	</a>
 </nav>

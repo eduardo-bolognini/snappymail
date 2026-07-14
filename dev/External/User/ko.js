@@ -113,10 +113,11 @@ Object.assign(ko.bindingHandlers, {
 			const fValue = fValueAccessor(),
 				focused = fValue.focused;
 
-			element.addresses = new EmailAddressesComponent(element, {
-				focusCallback: value => focused?.(!!value),
-				autoCompleteSource: fAllBindings.get('autoCompleteSource'),
-				onChange: value => fValue(value)
+				element.addresses = new EmailAddressesComponent(element, {
+					focusCallback: value => focused?.(!!value),
+					autoCompleteSource: fAllBindings.get('autoCompleteSource'),
+					commandCallback: fAllBindings.get('emailCommand'),
+					onChange: value => fValue(value)
 			});
 
 			focused?.subscribe(value =>

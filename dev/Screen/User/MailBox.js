@@ -19,6 +19,28 @@ import { AbstractScreen } from 'Knoin/AbstractScreen';
 
 import { MessageModel } from 'Model/Message';
 import { populateMessageBody } from 'Common/UtilsUser';
+import Remote from 'Remote/User/Fetch';
+
+const mailMcpAction = {
+	mailboxes: 'AiMailboxes',
+	search: 'AiSearchMessages',
+	message: 'AiGetMessage'
+};
+
+function handleMailMcpRequest(request) {
+	const action = mailMcpAction[request.method];
+	if (!action) {
+		window.snappyDesktop?.mailMcp.respond({ id: request.id, error: 'Unsupported mail method' });
+		return;
+	}
+	Remote.request(action, (error, data) => {
+		window.snappyDesktop?.mailMcp.respond({
+			id: request.id,
+			result: error ? undefined : data?.Result,
+			error: error ? String(data?.messageAdditional || data?.message || `Mail error ${error}`) : undefined
+		});
+	}, request.params || {}, 120000);
+}
 
 export class MailBoxUserScreen extends AbstractScreen {
 	constructor() {
@@ -91,6 +113,7 @@ export class MailBoxUserScreen extends AbstractScreen {
 	 */
 	onStart() {
 		super.onStart();
+		window.snappyDesktop?.mailMcp.onRequest(handleMailMcpRequest);
 
 		addEventListener('mailbox.inbox-unread-count', e => {
 			FolderUserStore.foldersInboxUnreadCount(e.detail);

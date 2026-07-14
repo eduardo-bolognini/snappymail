@@ -9,16 +9,28 @@ trait Raw
 	 */
 	public function RawViewAsPlain() : bool
 	{
-		$oAccount = $this->getAccountFromToken();
 		$sRawKey = $this->GetActionParam('RawKey', '');
 		$aValues = $this->decodeRawKey($sRawKey);
-		if (!empty($aValues['folder']) && !empty($aValues['uid'])
-		 && !empty($aValues['accountHash']) && $aValues['accountHash'] === $oAccount->Hash()
-		) {
+		$sRequestedAccount = (string) ($aValues['account'] ?? '');
+		$oMailClient = null;
+
+		if ($sRequestedAccount) {
+			[$oAccount, $oMailClient] = $this->aiMailClient($sRequestedAccount);
+		} else {
+			$oAccount = $this->getAccountFromToken();
+			if (empty($aValues['accountHash']) || $aValues['accountHash'] !== $oAccount->Hash()) {
+				return false;
+			}
+		}
+
+		if (!empty($aValues['folder']) && !empty($aValues['uid'])) {
 			$this->verifyCacheByKey($sRawKey);
-			$this->initMailClientConnection();
+			if (!$oMailClient) {
+				$this->initMailClientConnection();
+				$oMailClient = $this->MailClient();
+			}
 			\header('Content-Type: text/plain');
-			return $this->MailClient()->MessageMimeStream(
+			return $oMailClient->MessageMimeStream(
 				function ($rResource) use ($sRawKey) {
 					if (\is_resource($rResource)) {
 						$this->cacheByKey($sRawKey);
@@ -95,11 +107,17 @@ trait Raw
 	private function rawSmart(bool $bDownload, bool $bThumbnail = false) : bool
 	{
 		$sRawKey = (string) $this->GetActionParam('RawKey', '');
-
-		$oAccount = $this->getAccountFromToken();
 		$aValues = $this->decodeRawKey($sRawKey);
-		if (empty($aValues['accountHash']) || $aValues['accountHash'] !== $oAccount->Hash()) {
-			return false;
+		$sRequestedAccount = (string) ($aValues['account'] ?? '');
+		$oMailClient = null;
+
+		if ($sRequestedAccount) {
+			[$oAccount, $oMailClient] = $this->aiMailClient($sRequestedAccount);
+		} else {
+			$oAccount = $this->getAccountFromToken();
+			if (empty($aValues['accountHash']) || $aValues['accountHash'] !== $oAccount->Hash()) {
+				return false;
+			}
 		}
 
 		$sRange = \MailSo\Base\Http::GetHeader('Range');
@@ -148,10 +166,13 @@ trait Raw
 			return false;
 		}
 
-		$this->initMailClientConnection();
+		if (!$oMailClient) {
+			$this->initMailClientConnection();
+			$oMailClient = $this->MailClient();
+		}
 
 		$self = $this;
-		return $this->MailClient()->MessageMimeStream(
+		return $oMailClient->MessageMimeStream(
 			function($rResource, $sContentType, $sFileName, $sMimeIndex = '') use (
 				$self, $sRawKey, $sContentTypeIn, $sFileNameIn, $bDownload, $bThumbnail,
 				$bIsRangeRequest, $sRangeStart, $sRangeEnd

@@ -1,0 +1,419 @@
+<header class="desktop-ai-header g-ui-user-select-none">
+	<div>
+		<span class="g-icon g-icon--sparkles desktop-ai-title-icon" aria-hidden="true"></span>
+		<strong data-bind="visible: !connected()" data-i18n="DESKTOP_AI/TITLE"></strong>
+		<strong data-bind="visible: connected" data-i18n="DESKTOP_AI/CODEX_SETTINGS"></strong>
+		<span class="desktop-ai-model" data-bind="text: model"></span>
+	</div>
+	<button type="button" class="desktop-ai-close" data-bind="click: tryToClose" data-i18n="[title]GLOBAL/CLOSE"><span class="g-icon g-icon--xmark" aria-hidden="true"></span></button>
+</header>
+
+<div class="desktop-ai-layout">
+	<nav class="desktop-ai-nav g-ui-user-select-none" data-bind="visible: connected">
+		<button type="button" data-bind="click: function() { setSection('overview'); }, css: {selected: 'overview' === section()}"><span class="g-icon g-icon--chart-line-points" aria-hidden="true"></span><span data-i18n="DESKTOP_AI/NAV_OVERVIEW"></span></button>
+		<button type="button" data-bind="click: function() { setSection('contacts'); }, css: {selected: 'contacts' === section()}"><span class="g-icon g-icon--persons" aria-hidden="true"></span><span data-i18n="DESKTOP_AI/NAV_CONTACTS"></span></button>
+		<button type="button" data-bind="click: function() { setSection('style'); }, css: {selected: 'style' === section()}"><span class="g-icon g-icon--pencil" aria-hidden="true"></span><span data-i18n="DESKTOP_AI/NAV_STYLE"></span></button>
+		<button type="button" data-bind="click: function() { setSection('setup'); }, css: {selected: 'setup' === section()}"><span class="g-icon g-icon--gear" aria-hidden="true"></span><span data-i18n="DESKTOP_AI/NAV_CONNECTION"></span></button>
+	</nav>
+
+	<main class="desktop-ai-content" data-bind="css: {'is-disconnected': !connected()}">
+		<div class="desktop-ai-error" data-bind="visible: errorMessage, text: errorMessage"></div>
+
+		<section class="desktop-ai-section desktop-ai-setup" data-bind="visible: 'setup' === section()">
+			<div class="desktop-ai-section-heading">
+				<span class="desktop-ai-eyebrow" data-i18n="DESKTOP_AI/CONNECTION"></span>
+				<h2 data-bind="visible: !connected()" data-i18n="DESKTOP_AI/CONNECT_CODEX"></h2>
+				<h2 data-bind="visible: connected" data-i18n="DESKTOP_AI/CODEX_CONNECTED"></h2>
+			</div>
+
+			<div data-bind="visible: !connected()">
+				<div class="desktop-ai-segments">
+					<button type="button" data-bind="click: function() { authMode('chatgpt'); }, css: {selected: 'chatgpt' === authMode()}" data-i18n="DESKTOP_AI/CHATGPT_LOGIN"></button>
+					<button type="button" data-bind="click: function() { authMode('apiKey'); }, css: {selected: 'apiKey' === authMode()}" data-i18n="DESKTOP_AI/API_KEY"></button>
+				</div>
+
+				<div class="desktop-ai-auth" data-bind="visible: 'chatgpt' === authMode()">
+					<button type="button" class="btn btn-success desktop-ai-primary" data-bind="click: startDeviceLogin, disable: busy" data-i18n="DESKTOP_AI/CONTINUE_CHATGPT"></button>
+					<div class="desktop-ai-device" data-bind="visible: deviceCode">
+						<span data-i18n="DESKTOP_AI/DEVICE_CODE"></span>
+						<strong data-bind="text: deviceCode"></strong>
+						<button type="button" class="btn" data-bind="click: copyDeviceCode" data-i18n="DESKTOP_AI/COPY_CODE"></button>
+					</div>
+				</div>
+
+				<form class="desktop-ai-auth" data-bind="visible: 'apiKey' === authMode(), submit: loginApiKey">
+					<label for="desktop-ai-api-key" data-i18n="DESKTOP_AI/API_KEY_LABEL"></label>
+					<div class="desktop-ai-key-field">
+						<input id="desktop-ai-api-key" autocomplete="off" spellcheck="false" data-bind="textInput: apiKey, attr: {type: showApiKey() ? 'text' : 'password'}">
+						<button type="button" class="btn" data-bind="click: function() { showApiKey(!showApiKey()); }" data-i18n="DESKTOP_AI/SHOW_KEY"></button>
+					</div>
+					<button type="submit" class="btn btn-success desktop-ai-primary" data-bind="disable: busy() || !apiKey().trim()" data-i18n="DESKTOP_AI/CONNECT"></button>
+				</form>
+			</div>
+
+			<div class="desktop-ai-connection" data-bind="visible: connected">
+				<div>
+					<span data-i18n="DESKTOP_AI/CONNECTED_AS"></span>
+					<strong data-bind="text: accountLabel"></strong>
+				</div>
+				<button type="button" class="btn" data-bind="click: logout, disable: busy" data-i18n="DESKTOP_AI/DISCONNECT"></button>
+			</div>
+			<div class="desktop-ai-model-setting" data-bind="visible: connected">
+				<div class="desktop-ai-model-setting-copy">
+					<span class="g-icon g-icon--sparkles" aria-hidden="true"></span>
+					<div>
+						<strong id="desktop-ai-model-label" data-i18n="DESKTOP_AI/MODEL_SETTING"></strong>
+						<span data-i18n="DESKTOP_AI/MODEL_SETTING_HINT"></span>
+					</div>
+				</div>
+				<label class="desktop-ai-model-picker">
+					<select aria-labelledby="desktop-ai-model-label" data-bind="options: modelOptions, optionsText: 'name', optionsValue: 'id', value: model, event: {change: saveModel}, disable: busy() || analyzing() || savingSettings()"></select>
+					<span data-bind="text: modelDescription"></span>
+				</label>
+			</div>
+			<p class="desktop-ai-private" data-i18n="DESKTOP_AI/PRIVATE_STORAGE"></p>
+
+			<div class="desktop-ai-plugins" data-bind="visible: connected">
+				<div class="desktop-ai-plugin-heading">
+					<div>
+						<span class="desktop-ai-eyebrow" data-i18n="DESKTOP_AI/PLUGINS_TITLE"></span>
+						<h3 data-i18n="DESKTOP_AI/PLUGINS_SUBTITLE"></h3>
+					</div>
+					<button type="button" class="btn" data-bind="click: loadPlugins, disable: pluginsLoading"><span class="g-icon g-icon--arrow-shape-turn-up-right" aria-hidden="true"></span><span data-i18n="DESKTOP_AI/PLUGIN_REFRESH"></span></button>
+				</div>
+				<p class="desktop-ai-plugin-hint" data-i18n="DESKTOP_AI/PLUGINS_HINT"></p>
+
+				<div class="desktop-ai-plugin-metrics">
+					<div><strong data-bind="text: installedPluginCount"></strong><span data-i18n="DESKTOP_AI/PLUGIN_CONNECTED_COUNT"></span></div>
+					<div><strong data-bind="text: availablePluginCount"></strong><span data-i18n="DESKTOP_AI/PLUGIN_AVAILABLE_COUNT"></span></div>
+				</div>
+
+				<section class="desktop-ai-plugin-auth" data-bind="visible: pluginAuthApps().length, i18nUpdate: pluginAuthApps">
+					<strong data-i18n="DESKTOP_AI/PLUGIN_AUTH_TITLE"></strong>
+					<p data-i18n="DESKTOP_AI/PLUGIN_AUTH_HINT"></p>
+					<div data-bind="foreach: pluginAuthApps">
+						<div><span data-bind="text: name"></span><button type="button" class="btn btn-success" data-bind="click: $root.authorizePluginApp" data-i18n="DESKTOP_AI/PLUGIN_AUTHORIZE"></button></div>
+					</div>
+				</section>
+
+				<div class="desktop-ai-plugin-toolbar">
+					<div class="desktop-ai-segments">
+						<button type="button" data-bind="click: function() { pluginView('installed'); }, css: {selected: 'installed' === pluginView()}" data-i18n="DESKTOP_AI/PLUGIN_INSTALLED"></button>
+						<button type="button" data-bind="click: function() { pluginView('catalog'); }, css: {selected: 'catalog' === pluginView()}" data-i18n="DESKTOP_AI/PLUGIN_CATALOG"></button>
+					</div>
+					<input type="search" data-bind="textInput: pluginSearch" data-i18n="[placeholder]DESKTOP_AI/PLUGIN_SEARCH">
+				</div>
+
+				<div class="desktop-ai-plugin-loading" data-bind="visible: pluginsLoading" aria-live="polite">
+					<span class="desktop-ai-sr-status" data-i18n="DESKTOP_AI/PLUGIN_LOADING"></span>
+					<div class="desktop-ai-plugin-skeleton" aria-hidden="true"><i></i><span><b></b><b></b><b></b></span></div>
+					<div class="desktop-ai-plugin-skeleton" aria-hidden="true"><i></i><span><b></b><b></b><b></b></span></div>
+					<div class="desktop-ai-plugin-skeleton" aria-hidden="true"><i></i><span><b></b><b></b><b></b></span></div>
+				</div>
+				<div class="desktop-ai-plugin-list" data-bind="foreach: visiblePlugins, i18nUpdate: pluginCatalog">
+					<article data-bind="css: {'is-installed': installed}">
+						<span class="desktop-ai-plugin-avatar" data-bind="text: (displayName || name).charAt(0).toUpperCase()"></span>
+						<div class="desktop-ai-plugin-identity">
+							<strong data-bind="text: displayName || name"></strong>
+							<small data-bind="text: (developerName ? developerName + (category ? ' · ' + category : '') : category) || marketplace"></small>
+							<p data-bind="visible: description, text: description"></p>
+							<div class="desktop-ai-plugin-capabilities" data-bind="foreach: capabilities"><span data-bind="text: $data"></span></div>
+						</div>
+						<div class="desktop-ai-plugin-actions">
+							<span class="desktop-ai-plugin-connected" data-bind="visible: installed" data-i18n="DESKTOP_AI/PLUGIN_CONNECTED"></span>
+							<span data-bind="visible: disabledByAdmin" data-i18n="DESKTOP_AI/PLUGIN_DISABLED_ADMIN"></span>
+							<button type="button" class="btn" data-bind="visible: installed &amp;&amp; canUninstall, click: $root.uninstallPlugin, disable: $root.pluginBusyId" data-i18n="DESKTOP_AI/PLUGIN_REMOVE"></button>
+							<button type="button" class="btn btn-success" data-bind="visible: !installed &amp;&amp; canInstall, click: $root.installPlugin, disable: $root.pluginBusyId" data-i18n="DESKTOP_AI/PLUGIN_CONNECT"></button>
+							<span data-bind="visible: !installed &amp;&amp; !canInstall &amp;&amp; !disabledByAdmin" data-i18n="DESKTOP_AI/PLUGIN_UNAVAILABLE"></span>
+						</div>
+					</article>
+				</div>
+				<div class="desktop-ai-plugin-empty" data-bind="visible: pluginCatalogLoaded() &amp;&amp; !pluginsLoading() &amp;&amp; !visiblePlugins().length" data-i18n="DESKTOP_AI/PLUGIN_EMPTY"></div>
+				<p class="desktop-ai-plugin-status" data-bind="visible: pluginStatusMessage, text: pluginStatusMessage"></p>
+				<p class="desktop-ai-private" data-i18n="DESKTOP_AI/PLUGIN_PRIVATE"></p>
+			</div>
+		</section>
+
+		<section class="desktop-ai-section" data-bind="visible: 'overview' === section()">
+			<div class="desktop-ai-section-heading">
+				<span class="desktop-ai-eyebrow" data-i18n="DESKTOP_AI/INITIAL_CONFIGURATION"></span>
+				<h2 data-i18n="DESKTOP_AI/ANALYZE_TITLE"></h2>
+			</div>
+
+			<div class="desktop-ai-metrics">
+				<div><strong data-bind="text: contacts().length"></strong><span data-i18n="DESKTOP_AI/CONTACTS_TOTAL"></span></div>
+				<div><strong data-bind="text: importantCount"></strong><span data-i18n="DESKTOP_AI/IMPORTANT"></span></div>
+				<div><strong data-bind="text: automaticCount"></strong><span data-i18n="DESKTOP_AI/AUTOMATIC"></span></div>
+			</div>
+
+			<div class="desktop-ai-setting-row">
+				<div>
+					<strong data-i18n="DESKTOP_AI/PERIOD"></strong>
+					<span data-i18n="DESKTOP_AI/PERIOD_HINT"></span>
+				</div>
+				<div class="desktop-ai-segments desktop-ai-period">
+					<label><input type="radio" name="ai-period" value="12" data-bind="checked: periodMonths"><span data-i18n="DESKTOP_AI/ONE_YEAR"></span></label>
+					<label><input type="radio" name="ai-period" value="36" data-bind="checked: periodMonths"><span data-i18n="DESKTOP_AI/THREE_YEARS"></span></label>
+				</div>
+			</div>
+
+			<div class="desktop-ai-setting-row">
+				<div>
+					<strong data-i18n="DESKTOP_AI/ANALYSIS_DEPTH"></strong>
+					<span data-i18n="DESKTOP_AI/ANALYSIS_DEPTH_HINT"></span>
+				</div>
+				<span class="desktop-ai-model">high</span>
+			</div>
+
+			<label class="desktop-ai-setting-row desktop-ai-toggle">
+				<div>
+					<strong data-i18n="DESKTOP_AI/AUTO_NEW_CONTACTS"></strong>
+					<span data-i18n="DESKTOP_AI/AUTO_NEW_CONTACTS_HINT"></span>
+				</div>
+				<input type="checkbox" data-bind="checked: autoAnalyzeNewContacts, event: {change: saveSettings}">
+			</label>
+
+			<div class="desktop-ai-run">
+				<button type="button" class="btn btn-success desktop-ai-primary" data-bind="click: analyze, enable: analysisReady"><span class="g-icon g-icon--sparkles" aria-hidden="true"></span><span data-i18n="DESKTOP_AI/ANALYZE_BUTTON"></span></button>
+				<span data-bind="visible: !analyzing() && statusMessage(), text: statusMessage"></span>
+			</div>
+			<div class="desktop-ai-analysis-progress" data-bind="visible: analyzing" aria-live="polite">
+				<div class="desktop-ai-analysis-progress-heading">
+					<span class="desktop-ai-analysis-spinner" aria-hidden="true"></span>
+					<div>
+						<strong data-bind="text: statusMessage"></strong>
+						<span data-bind="text: analysisProgressDetail"></span>
+					</div>
+					<time data-bind="text: analysisElapsedText"></time>
+				</div>
+				<div class="desktop-ai-analysis-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-bind="attr: {'aria-valuenow': analysisPercent, 'aria-valuetext': analysisProgressDetail}">
+					<span data-bind="style: {width: analysisProgressWidth}"></span>
+				</div>
+				<div class="desktop-ai-analysis-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+			</div>
+		</section>
+
+		<section class="desktop-ai-section desktop-ai-contacts" data-bind="visible: 'contacts' === section()">
+			<div class="desktop-ai-contact-toolbar">
+				<div class="desktop-ai-segments">
+					<button type="button" data-bind="click: function() { contactFilter('important'); }, css: {selected: 'important' === contactFilter()}"><span data-i18n="DESKTOP_AI/IMPORTANT"></span> <b data-bind="text: importantCount"></b></button>
+					<button type="button" data-bind="click: function() { contactFilter('automatic'); }, css: {selected: 'automatic' === contactFilter()}"><span data-i18n="DESKTOP_AI/AUTOMATIC"></span> <b data-bind="text: automaticCount"></b></button>
+					<button type="button" data-bind="click: function() { contactFilter('all'); }, css: {selected: 'all' === contactFilter()}" data-i18n="DESKTOP_AI/ALL"></button>
+				</div>
+				<input type="search" data-bind="textInput: contactSearch" data-i18n="[placeholder]GLOBAL/SEARCH">
+			</div>
+
+			<div class="desktop-ai-contact-grid">
+				<aside class="desktop-ai-group-folders g-ui-user-select-none">
+					<strong data-i18n="DESKTOP_AI/CONTACT_FOLDERS"></strong>
+					<button type="button" data-bind="click: selectAllContacts, css: {selected: !selectedGroupId()}">
+						<span class="g-icon g-icon--persons desktop-ai-folder-icon" aria-hidden="true"></span>
+						<span data-i18n="DESKTOP_AI/ALL_CONTACTS"></span>
+						<em data-bind="text: contacts().length"></em>
+					</button>
+					<div data-bind="foreach: groups">
+						<button type="button" data-bind="click: $root.selectGroup, css: {selected: id === $root.selectedGroupId()}">
+							<span class="g-icon g-icon--folder desktop-ai-folder-icon" aria-hidden="true"></span>
+							<span data-bind="text: name"></span>
+							<em data-bind="text: $root.groupMemberCount(id)"></em>
+						</button>
+					</div>
+					<div class="desktop-ai-folder-add">
+						<input type="text" data-bind="textInput: newGroupName" data-i18n="[placeholder]DESKTOP_AI/NEW_GROUP">
+						<button type="button" class="btn" data-bind="click: addGroup" data-i18n="[title]DESKTOP_AI/CREATE_FOLDER"><span class="g-icon g-icon--folder-plus" aria-hidden="true"></span></button>
+					</div>
+				</aside>
+
+				<div class="desktop-ai-contact-list g-ui-user-select-none" data-bind="foreach: filteredContacts">
+					<button type="button" data-bind="click: $root.selectContact, css: {selected: id === $root.selectedContactId()}">
+						<span class="desktop-ai-contact-avatar" data-bind="text: (name || email).charAt(0).toUpperCase()"></span>
+						<span><strong data-bind="text: name || email"></strong><small data-bind="text: organization || email"></small></span>
+						<em data-bind="text: messageCount"></em>
+					</button>
+				</div>
+
+				<div class="desktop-ai-contact-detail" data-bind="visible: selectedContact">
+					<div data-bind="with: selectedContact, i18nUpdate: selectedContact">
+						<div class="desktop-ai-detail-title">
+							<span class="desktop-ai-contact-avatar desktop-ai-contact-avatar-large" data-bind="text: (name || email).charAt(0).toUpperCase()"></span>
+							<div>
+								<strong data-bind="text: name || email"></strong>
+								<a data-bind="text: email, attr: {href: 'mailto:' + email}"></a>
+								<span data-bind="text: (jobTitle ? jobTitle + (organization ? ' · ' + organization : '') : organization) || relationship"></span>
+							</div>
+						</div>
+
+						<div class="desktop-ai-record-stats">
+							<div><strong data-bind="text: messageCount"></strong><span data-i18n="DESKTOP_AI/SENT_MESSAGES"></span></div>
+							<div><strong data-bind="text: receivedMessageCount"></strong><span data-i18n="DESKTOP_AI/RECEIVED_MESSAGES"></span></div>
+							<div><strong data-bind="text: $root.groupNames($data) || '—'"></strong><span data-i18n="DESKTOP_AI/GROUPS"></span></div>
+						</div>
+
+						<section class="desktop-ai-record-section" data-bind="visible: summary || relationshipSummary">
+							<h3 data-i18n="DESKTOP_AI/WHO_THEY_ARE"></h3>
+							<p data-bind="text: summary"></p>
+							<p class="desktop-ai-secondary-copy" data-bind="visible: relationshipSummary, text: relationshipSummary"></p>
+						</section>
+
+						<section class="desktop-ai-record-section" data-bind="visible: contactDetails.length || location">
+							<h3 data-i18n="DESKTOP_AI/CONTACT_INFORMATION"></h3>
+							<dl class="desktop-ai-contact-information" data-bind="foreach: contactDetails">
+								<div><dt data-bind="text: label"></dt><dd><strong data-bind="text: value"></strong><small><span data-bind="text: source"></span> · <span data-bind="text: $root.confidenceLabel(confidence)"></span></small></dd></div>
+							</dl>
+							<div class="desktop-ai-location" data-bind="visible: location"><strong data-i18n="DESKTOP_AI/LOCATION"></strong><span data-bind="text: location"></span></div>
+						</section>
+
+						<section class="desktop-ai-record-section desktop-ai-style-pair" data-bind="visible: myWritingStyle || theirWritingStyle">
+							<div><h3 data-i18n="DESKTOP_AI/MY_STYLE_WITH_CONTACT"></h3><p data-bind="text: myWritingStyle"></p></div>
+							<div><h3 data-i18n="DESKTOP_AI/THEIR_STYLE_WITH_ME"></h3><p data-bind="text: theirWritingStyle"></p></div>
+						</section>
+						<section class="desktop-ai-record-section desktop-ai-evidence-pair" data-bind="visible: $root.hasStyleEvidence(myStyleEvidence) || $root.hasStyleEvidence(theirStyleEvidence)">
+							<div class="desktop-ai-evidence-column" data-bind="with: myStyleEvidence, visible: $root.hasStyleEvidence(myStyleEvidence)">
+								<h3 data-i18n="DESKTOP_AI/MY_STYLE_EVIDENCE"></h3>
+								<div class="desktop-ai-tone-list" data-bind="foreach: tones"><div><strong data-bind="text: label"></strong><span data-bind="text: description"></span></div></div>
+								<div class="desktop-ai-style-tokens" data-bind="foreach: $root.styleTokens($data)"><span data-bind="text: value, css: {'is-phrase': phrase}"></span></div>
+								<div class="desktop-ai-pattern-list" data-bind="foreach: $root.stylePatternSections($data)"><div><strong data-bind="text: label"></strong><ul data-bind="foreach: values"><li data-bind="text: $data"></li></ul></div></div>
+								<div class="desktop-ai-example-list" data-bind="foreach: examples"><blockquote><p data-bind="text: text"></p><small data-bind="visible: context, text: context"></small></blockquote></div>
+							</div>
+							<div class="desktop-ai-evidence-column" data-bind="with: theirStyleEvidence, visible: $root.hasStyleEvidence(theirStyleEvidence)">
+								<h3 data-i18n="DESKTOP_AI/THEIR_STYLE_EVIDENCE"></h3>
+								<div class="desktop-ai-tone-list" data-bind="foreach: tones"><div><strong data-bind="text: label"></strong><span data-bind="text: description"></span></div></div>
+								<div class="desktop-ai-style-tokens" data-bind="foreach: $root.styleTokens($data)"><span data-bind="text: value, css: {'is-phrase': phrase}"></span></div>
+								<div class="desktop-ai-pattern-list" data-bind="foreach: $root.stylePatternSections($data)"><div><strong data-bind="text: label"></strong><ul data-bind="foreach: values"><li data-bind="text: $data"></li></ul></div></div>
+								<div class="desktop-ai-example-list" data-bind="foreach: examples"><blockquote><p data-bind="text: text"></p><small data-bind="visible: context, text: context"></small></blockquote></div>
+							</div>
+						</section>
+
+						<section class="desktop-ai-record-section" data-bind="visible: communicationDynamics">
+							<h3 data-i18n="DESKTOP_AI/COMMUNICATION_DYNAMICS"></h3>
+							<p data-bind="text: communicationDynamics"></p>
+						</section>
+
+						<section class="desktop-ai-record-section" data-bind="visible: topics.length">
+							<h3 data-i18n="DESKTOP_AI/RECURRING_TOPICS"></h3>
+							<div class="desktop-ai-traits" data-bind="foreach: topics"><span data-bind="text: $data"></span></div>
+						</section>
+
+						<section class="desktop-ai-record-section" data-bind="visible: facts.length">
+							<h3 data-i18n="DESKTOP_AI/LEARNED_FACTS"></h3>
+							<ul data-bind="foreach: facts"><li data-bind="text: $data"></li></ul>
+						</section>
+
+						<section class="desktop-ai-record-section desktop-ai-recommendation" data-bind="visible: recommendedApproach">
+							<h3 data-i18n="DESKTOP_AI/RECOMMENDED_APPROACH"></h3>
+							<p data-bind="text: recommendedApproach"></p>
+						</section>
+
+						<section class="desktop-ai-record-editor">
+							<div class="desktop-ai-editor-heading"><span class="g-icon g-icon--person-pencil" aria-hidden="true"></span><div><h3 data-i18n="DESKTOP_AI/EDIT_CONTACT_RECORD"></h3><p data-i18n="DESKTOP_AI/EDIT_CONTACT_RECORD_HINT"></p></div></div>
+							<div class="desktop-ai-editor-grid">
+							<label><span data-i18n="GLOBAL/NAME"></span><input type="text" data-bind="textInput: $root.editName"></label>
+							<label><span data-i18n="DESKTOP_AI/CLASSIFICATION"></span>
+								<select data-bind="value: $root.editKind">
+									<option value="important" data-i18n="DESKTOP_AI/IMPORTANT"></option>
+									<option value="automatic" data-i18n="DESKTOP_AI/AUTOMATIC"></option>
+									<option value="other" data-i18n="DESKTOP_AI/OTHER"></option>
+								</select>
+							</label>
+							<label class="desktop-ai-editor-wide"><span data-i18n="DESKTOP_AI/RELATIONSHIP"></span><input type="text" data-bind="textInput: $root.editRelationship"></label>
+							<label class="desktop-ai-editor-wide"><span data-i18n="DESKTOP_AI/NOTES"></span><textarea rows="4" data-bind="textInput: $root.editNotes"></textarea></label>
+							</div>
+							<fieldset>
+								<legend data-i18n="DESKTOP_AI/GROUPS"></legend>
+								<div class="desktop-ai-group-options" data-bind="foreach: $root.groups">
+									<label><input type="checkbox" data-bind="checkedValue: id, checked: $root.editGroupIds"><span data-bind="text: name"></span></label>
+								</div>
+							</fieldset>
+							<div class="desktop-ai-editor-actions"><button type="button" class="btn btn-success desktop-ai-primary" data-bind="click: $root.saveContact, disable: $root.busy"><span class="g-icon g-icon--floppy-disk" aria-hidden="true"></span><span data-i18n="GLOBAL/SAVE"></span></button></div>
+						</section>
+					</div>
+				</div>
+
+				<div class="desktop-ai-contact-detail desktop-ai-group-detail" data-bind="visible: selectedGroup() && !selectedContact()">
+					<div data-bind="with: selectedGroup, i18nUpdate: selectedGroup">
+						<div class="desktop-ai-detail-title">
+							<span class="g-icon g-icon--folder-open desktop-ai-folder-icon desktop-ai-folder-icon-large" aria-hidden="true"></span>
+							<div><strong data-bind="text: name"></strong><span><b data-bind="text: $root.groupMembers().length"></b> <span data-i18n="DESKTOP_AI/MEMBERS"></span></span></div>
+						</div>
+						<section class="desktop-ai-record-section">
+							<h3 data-i18n="DESKTOP_AI/SMART_FOLDER_PROFILE"></h3>
+							<p data-bind="text: summary || $root.i18n('DESKTOP_AI/NO_GROUP_ANALYSIS')"></p>
+							<p class="desktop-ai-secondary-copy" data-bind="visible: memberProfile, text: memberProfile"></p>
+						</section>
+						<section class="desktop-ai-record-section" data-bind="visible: $root.groupMembers().length">
+							<h3 data-i18n="DESKTOP_AI/MEMBERS"></h3>
+							<div class="desktop-ai-group-members" data-bind="foreach: $root.groupMembers">
+								<button type="button" data-bind="click: $root.selectContact"><span class="desktop-ai-contact-avatar" data-bind="text: (name || email).charAt(0).toUpperCase()"></span><span><strong data-bind="text: name || email"></strong><small data-bind="text: organization || email"></small></span></button>
+							</div>
+						</section>
+						<section class="desktop-ai-record-section" data-bind="visible: relationshipContext">
+							<h3 data-i18n="DESKTOP_AI/RELATIONSHIP_CONTEXT"></h3><p data-bind="text: relationshipContext"></p>
+						</section>
+						<section class="desktop-ai-record-section desktop-ai-style-pair" data-bind="visible: myWritingStyle || theirWritingStyle">
+							<div><h3 data-i18n="DESKTOP_AI/MY_STYLE_WITH_GROUP"></h3><p data-bind="text: myWritingStyle"></p></div>
+							<div><h3 data-i18n="DESKTOP_AI/GROUP_STYLE_WITH_ME"></h3><p data-bind="text: theirWritingStyle"></p></div>
+						</section>
+						<section class="desktop-ai-record-section desktop-ai-evidence-pair" data-bind="visible: $root.hasStyleEvidence(myStyleEvidence) || $root.hasStyleEvidence(theirStyleEvidence)">
+							<div class="desktop-ai-evidence-column" data-bind="with: myStyleEvidence, visible: $root.hasStyleEvidence(myStyleEvidence)">
+								<h3 data-i18n="DESKTOP_AI/MY_STYLE_EVIDENCE"></h3>
+								<div class="desktop-ai-tone-list" data-bind="foreach: tones"><div><strong data-bind="text: label"></strong><span data-bind="text: description"></span></div></div>
+								<div class="desktop-ai-style-tokens" data-bind="foreach: $root.styleTokens($data)"><span data-bind="text: value, css: {'is-phrase': phrase}"></span></div>
+								<div class="desktop-ai-pattern-list" data-bind="foreach: $root.stylePatternSections($data)"><div><strong data-bind="text: label"></strong><ul data-bind="foreach: values"><li data-bind="text: $data"></li></ul></div></div>
+								<div class="desktop-ai-example-list" data-bind="foreach: examples"><blockquote><p data-bind="text: text"></p><small data-bind="visible: context, text: context"></small></blockquote></div>
+							</div>
+							<div class="desktop-ai-evidence-column" data-bind="with: theirStyleEvidence, visible: $root.hasStyleEvidence(theirStyleEvidence)">
+								<h3 data-i18n="DESKTOP_AI/THEIR_STYLE_EVIDENCE"></h3>
+								<div class="desktop-ai-tone-list" data-bind="foreach: tones"><div><strong data-bind="text: label"></strong><span data-bind="text: description"></span></div></div>
+								<div class="desktop-ai-style-tokens" data-bind="foreach: $root.styleTokens($data)"><span data-bind="text: value, css: {'is-phrase': phrase}"></span></div>
+								<div class="desktop-ai-pattern-list" data-bind="foreach: $root.stylePatternSections($data)"><div><strong data-bind="text: label"></strong><ul data-bind="foreach: values"><li data-bind="text: $data"></li></ul></div></div>
+								<div class="desktop-ai-example-list" data-bind="foreach: examples"><blockquote><p data-bind="text: text"></p><small data-bind="visible: context, text: context"></small></blockquote></div>
+							</div>
+						</section>
+						<section class="desktop-ai-record-section" data-bind="visible: communicationDynamics">
+							<h3 data-i18n="DESKTOP_AI/COMMUNICATION_DYNAMICS"></h3><p data-bind="text: communicationDynamics"></p>
+						</section>
+						<section class="desktop-ai-record-section" data-bind="visible: topics.length">
+							<h3 data-i18n="DESKTOP_AI/RECURRING_TOPICS"></h3><div class="desktop-ai-traits" data-bind="foreach: topics"><span data-bind="text: $data"></span></div>
+						</section>
+						<section class="desktop-ai-record-section desktop-ai-recommendation" data-bind="visible: recommendedApproach">
+							<h3 data-i18n="DESKTOP_AI/RECOMMENDED_APPROACH"></h3><p data-bind="text: recommendedApproach"></p>
+						</section>
+					</div>
+				</div>
+
+				<div class="desktop-ai-empty" data-bind="visible: !selectedContact() && !selectedGroup()" data-i18n="DESKTOP_AI/SELECT_CONTACT_OR_FOLDER"></div>
+			</div>
+		</section>
+
+		<section class="desktop-ai-section desktop-ai-style" data-bind="visible: 'style' === section()">
+			<div class="desktop-ai-section-heading">
+				<span class="desktop-ai-eyebrow" data-i18n="DESKTOP_AI/WRITING_PROFILE"></span>
+				<h2 data-i18n="DESKTOP_AI/GENERAL_STYLE"></h2>
+			</div>
+			<p class="desktop-ai-style-copy" data-bind="text: profile().generalStyle || i18n('DESKTOP_AI/NO_ANALYSIS')"></p>
+			<div class="desktop-ai-traits" data-bind="foreach: profile().traits"><span data-bind="text: $data"></span></div>
+			<section class="desktop-ai-style-evidence" data-bind="visible: hasStyleEvidence(profile().styleEvidence)">
+				<div class="desktop-ai-style-evidence-heading"><span class="g-icon g-icon--quote-open" aria-hidden="true"></span><div><h3 data-i18n="DESKTOP_AI/CONCRETE_STYLE_PROFILE"></h3><p data-i18n="DESKTOP_AI/CONCRETE_STYLE_PROFILE_HINT"></p></div></div>
+				<div data-bind="with: profile().styleEvidence">
+					<h4 class="desktop-ai-evidence-label" data-bind="visible: tones.length" data-i18n="DESKTOP_AI/TONES"></h4>
+					<div class="desktop-ai-tone-list desktop-ai-tone-list-wide" data-bind="visible: tones.length, foreach: tones"><div><strong data-bind="text: label"></strong><span data-bind="text: description"></span></div></div>
+					<div class="desktop-ai-style-language" data-bind="visible: $root.styleTokens($data).length">
+						<h4 data-i18n="DESKTOP_AI/WORDS_AND_PHRASES"></h4>
+						<div class="desktop-ai-style-tokens" data-bind="foreach: $root.styleTokens($data)"><span data-bind="text: value, css: {'is-phrase': phrase}"></span></div>
+					</div>
+					<div class="desktop-ai-pattern-list desktop-ai-pattern-list-wide" data-bind="foreach: $root.stylePatternSections($data)"><div><strong data-bind="text: label"></strong><ul data-bind="foreach: values"><li data-bind="text: $data"></li></ul></div></div>
+					<div class="desktop-ai-real-examples" data-bind="visible: examples.length">
+						<h4 data-i18n="DESKTOP_AI/REAL_EXAMPLES"></h4>
+						<div class="desktop-ai-example-list desktop-ai-example-list-wide" data-bind="foreach: examples"><blockquote><p data-bind="text: text"></p><small data-bind="visible: context, text: context"></small></blockquote></div>
+					</div>
+				</div>
+			</section>
+			<div class="desktop-ai-style-groups" data-bind="visible: groups().length">
+				<h3 data-i18n="DESKTOP_AI/GROUP_STYLES"></h3>
+				<div data-bind="foreach: groups">
+					<article><strong data-bind="text: name"></strong><p data-bind="text: summary || $root.i18n('DESKTOP_AI/NO_GROUP_STYLE')"></p><small data-i18n="DESKTOP_AI/MY_STYLE_WITH_GROUP"></small><p data-bind="text: myWritingStyle"></p><small data-i18n="DESKTOP_AI/GROUP_STYLE_WITH_ME"></small><p data-bind="text: theirWritingStyle"></p></article>
+				</div>
+			</div>
+		</section>
+	</main>
+</div>

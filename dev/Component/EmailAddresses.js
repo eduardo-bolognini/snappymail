@@ -52,8 +52,10 @@ export class EmailAddressesComponent {
 
 			focusCallback : null,
 
-			// simply passing an autoComplete source (array, string or function) will instantiate autocomplete functionality
-			autoCompleteSource : '',
+				// simply passing an autoComplete source (array, string or function) will instantiate autocomplete functionality
+				autoCompleteSource : '',
+
+				commandCallback : null,
 
 			onChange : null
 		}, options);
@@ -61,6 +63,7 @@ export class EmailAddressesComponent {
 		self._chosenValues = [];
 
 		self._lastEdit = '';
+		self._suggestions = new Map;
 
 		// Create the elements
 		self.ul = createElement('ul',{class:"emailaddresses"});
@@ -84,12 +87,14 @@ export class EmailAddressesComponent {
 		addEventsListeners(input, {
 			focus: () => {
 				self._focusTrigger(true);
-				input.value || self._resetDatalist();
+				input.value ? self._updateDatalist() : self._resetDatalist();
 			},
 			blur: () => {
-				// prevent autoComplete menu click from causing a false 'blur'
-				self._parseInput(true);
-				self._focusTrigger(false);
+					// prevent autoComplete menu click from causing a false 'blur'
+					if (!input.value.trim().startsWith('/')) {
+						self._selectSuggestion() || self._parseInput(true);
+					}
+					self._focusTrigger(false);
 			},
 			keydown: e => {
 				if ('Backspace' === e.key || 'ArrowLeft' === e.key) {
@@ -102,12 +107,28 @@ export class EmailAddressesComponent {
 						lastTag.querySelector('a').focus();
 					}
 					self._updateDatalist();
-				} else if (e.key == 'Enter') {
-					e.preventDefault();
-					self._parseInput(true);
+					} else if (e.key == 'Enter') {
+						e.preventDefault();
+						const command = input.value.trim();
+						if (command.startsWith('/') && self.options.commandCallback) {
+							input.value = '';
+							self.options.commandCallback(command.slice(1).trim());
+							self._resizeInput();
+						} else if (!self._selectSuggestion()) {
+							if (command && self.options.commandCallback
+								&& !self._simpleEmailMatch(command)
+								&& !command.includes(',') && !command.includes(';')) {
+								input.value = '';
+								self.options.commandCallback(command);
+								self._resizeInput();
+							} else {
+								self._parseInput(true);
+							}
+						}
 				}
 			},
-			input: () => {
+			input: e => {
+				if ('insertReplacementText' === e.inputType && self._selectSuggestion()) return;
 				self._parseInput();
 				self._updateDatalist();
 			}
@@ -132,16 +153,33 @@ export class EmailAddressesComponent {
 		self._updateDatalist = self.options.autoCompleteSource
 			? (() => {
 				let value = input.value.trim();
-				if (datalist.inputValue !== value) {
-					datalist.inputValue = value;
-					value.length && self.options.autoCompleteSource(
+				if (datalist.owner !== self || self._suggestionQuery !== value) {
+					datalist.owner = self;
+					self._suggestionQuery = value;
+					if (!value.length) {
+						self._resetDatalist();
+						return;
+					}
+					const requestedValue = value;
+					self.options.autoCompleteSource(
 						value,
 						items => {
+							if (datalist.owner !== self || input.value.trim() !== requestedValue) return;
 							self._resetDatalist();
 							let chars = value.length;
 							items?.forEach(item => {
-								datalist.append(new Option(item));
-								chars = Math.max(chars, item.length);
+								const suggestion = 'string' === typeof item
+									? { value: item, insertValue: item }
+									: item || {},
+									displayValue = String(suggestion.value || suggestion.insertValue || '').trim();
+								if (!displayValue || self._suggestions.has(displayValue)) return;
+								self._suggestions.set(displayValue, { ...suggestion, value: displayValue });
+								const option = new Option;
+								option.value = displayValue;
+								option.textContent = String(suggestion.label || displayValue);
+								if (suggestion.label) option.label = String(suggestion.label);
+								datalist.append(option);
+								chars = Math.max(chars, displayValue.length, String(suggestion.label || '').length);
 							});
 							// https://github.com/the-djmaze/snappymail/issues/368 and #513
 							chars *= 8;
@@ -162,10 +200,37 @@ export class EmailAddressesComponent {
 
 	_resetDatalist() {
 		datalist.textContent = '';
+		this._suggestions.clear();
+	}
+
+	_selectSuggestion() {
+		const suggestion = this._suggestions.get(this.input.value.trim());
+		if (!suggestion) return false;
+		if (suggestion.command && this.options.commandCallback) {
+			this.input.value = '';
+			this._resetDatalist();
+			this.options.commandCallback(String(suggestion.command).replace(/^\/+/, '').trim());
+			this._resizeInput();
+			return true;
+		}
+		const addresses = Array.isArray(suggestion.addresses) ? suggestion.addresses.filter(Boolean) : [],
+			value = addresses.length
+				? `${addresses.join(', ')};`
+				: String(suggestion.insertValue || suggestion.value || '').trim();
+		this.input.value = '';
+		this._resetDatalist();
+		if (value) this._parseValue(value);
+		this._resizeInput();
+		return true;
 	}
 
 	_parseInput(force) {
 		let val = this.input.value;
+		if (val.trim().startsWith('/')) return;
+		if (force && val.trim() && !val.includes(',') && !val.includes(';') && !this._simpleEmailMatch(val)) {
+			this._resizeInput();
+			return;
+		}
 		if ((force || val.includes(',') || val.includes(';')
 				|| (val.charAt(val.length-1)===' ' && this._simpleEmailMatch(val)))
 			&& this._parseValue(val)) {

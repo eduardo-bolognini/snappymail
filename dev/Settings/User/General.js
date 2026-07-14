@@ -217,7 +217,7 @@ export class UserSettingsGeneral extends AbstractViewSettings {
 	}
 
 	testSystemNotification() {
-		NotificationUserStore.display('SnappyMail', 'Test notification');
+		NotificationUserStore.display('EasyMail', 'Notifica di prova');
 	}
 
 	selectLanguage() {
