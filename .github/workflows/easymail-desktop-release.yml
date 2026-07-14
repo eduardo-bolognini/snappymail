@@ -3,7 +3,7 @@ name: EasyMail desktop release
 on:
   push:
     tags:
-      - 'easymail-v*'
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -49,7 +49,7 @@ jobs:
         shell: bash
         run: |
           VERSION="$(node -p "require('./package.json').version")"
-          test "$GITHUB_REF_NAME" = "easymail-v$VERSION"
+          test "$GITHUB_REF_NAME" = "v$VERSION"
       - name: Report macOS signing mode
         if: runner.os == 'macOS'
         shell: bash
