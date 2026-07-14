@@ -78,40 +78,25 @@
 		</menu>
 	</div>
 	<div class="btn-group dropdown onCheckedHide" data-bind="visible: !sortSupported()">
-		<div id="no-sort-list" class="btn fontastic" data-i18n="[title]MESSAGE_LIST/NO_SORT">✖⬇</div>
+		<div id="no-sort-list" class="btn" data-i18n="[title]MESSAGE_LIST/NO_SORT"><span class="g-icon g-icon--sliders" aria-hidden="true"></span></div>
 	</div>
-	<div class="btn-group dropdown onCheckedHide" data-bind="visible: sortSupported(), registerBootstrapDropdown: true">
-		<a id="sort-list-dropdown-id" class="btn dropdown-toggle" href="#" tabindex="-1" data-i18n="[title]MESSAGE_LIST/SORT"><span data-bind="text: sortText"></span><span class="g-icon g-icon--chevron-down dropdown-chevron" aria-hidden="true"></span></a>
+	<div class="btn-group dropdown onCheckedHide sort-menu" data-bind="visible: sortSupported(), registerBootstrapDropdown: true">
+		<a id="sort-list-dropdown-id" class="btn dropdown-toggle" href="#" tabindex="-1" data-i18n="[title]MESSAGE_LIST/SORT"><span class="g-icon g-icon--sliders" aria-hidden="true"></span><span class="g-icon g-icon--chevron-down dropdown-chevron" aria-hidden="true"></span></a>
 		<menu class="dropdown-menu" role="menu" aria-labelledby="sort-list-dropdown-id">
-			<li role="presentation" data-sort="" data-bind="click: changeSort">
-				<a href="#" tabindex="-1" data-icon="📅⬇" data-i18n="MESSAGE_LIST/SORT_DATE_DESC"></a>
+			<li role="presentation" data-sort-key="DATE" data-bind="click: changeSort, css: {active: sortCriterion() === 'DATE'}">
+				<a href="#" tabindex="-1"><span class="g-icon g-icon--clock" aria-hidden="true"></span><span data-i18n="MESSAGE_LIST/SORT_DATE"></span><span class="g-icon sort-direction" data-bind="css: sortDescending() ? 'g-icon--chevron-down' : 'g-icon--chevron-up', visible: sortCriterion() === 'DATE'" aria-hidden="true"></span></a>
 			</li>
-			<li role="presentation" data-sort="DATE" data-bind="click: changeSort">
-				<a href="#" tabindex="-1" data-icon="📅⬆" data-i18n="MESSAGE_LIST/SORT_DATE_ASC"></a>
+			<li role="presentation" data-sort-key="FROM" data-bind="click: changeSort, css: {active: sortCriterion() === 'FROM'}">
+				<a href="#" tabindex="-1"><span class="g-icon g-icon--person" aria-hidden="true"></span><span data-i18n="MESSAGE_LIST/SORT_FROM"></span><span class="g-icon sort-direction" data-bind="css: sortDescending() ? 'g-icon--chevron-down' : 'g-icon--chevron-up', visible: sortCriterion() === 'FROM'" aria-hidden="true"></span></a>
 			</li>
-			<li class="dividerbar" role="presentation" data-sort="FROM" data-bind="click: changeSort">
-				<a href="#" tabindex="-1" data-icon="@⬇" data-i18n="MESSAGE_LIST/SORT_FROM_ASC"></a>
+			<li role="presentation" data-sort-key="SIZE" data-bind="click: changeSort, css: {active: sortCriterion() === 'SIZE'}">
+				<a href="#" tabindex="-1"><span class="g-icon g-icon--file" aria-hidden="true"></span><span data-i18n="MESSAGE_LIST/SORT_SIZE"></span><span class="g-icon sort-direction" data-bind="css: sortDescending() ? 'g-icon--chevron-down' : 'g-icon--chevron-up', visible: sortCriterion() === 'SIZE'" aria-hidden="true"></span></a>
 			</li>
-			<li role="presentation" data-sort="REVERSE FROM" data-bind="click: changeSort">
-				<a href="#" tabindex="-1" data-icon="@⬆" data-i18n="MESSAGE_LIST/SORT_FROM_DESC"></a>
+			<li role="presentation" data-sort-key="SUBJECT" data-bind="click: changeSort, css: {active: sortCriterion() === 'SUBJECT'}">
+				<a href="#" tabindex="-1"><span class="g-icon g-icon--font-case" aria-hidden="true"></span><span data-i18n="MESSAGE_LIST/SORT_SUBJECT"></span><span class="g-icon sort-direction" data-bind="css: sortDescending() ? 'g-icon--chevron-down' : 'g-icon--chevron-up', visible: sortCriterion() === 'SUBJECT'" aria-hidden="true"></span></a>
 			</li>
-			<li class="dividerbar" role="presentation" data-sort="REVERSE SIZE" data-bind="click: changeSort">
-				<a href="#" tabindex="-1" data-icon="✉⬇" data-i18n="MESSAGE_LIST/SORT_SIZE_DESC"></a>
-			</li>
-			<li role="presentation" data-sort="SIZE" data-bind="click: changeSort">
-				<a href="#" tabindex="-1" data-icon="✉⬆" data-i18n="MESSAGE_LIST/SORT_SIZE_ASC"></a>
-			</li>
-			<li class="dividerbar" role="presentation" data-sort="SUBJECT" data-bind="click: changeSort">
-				<a href="#" tabindex="-1" data-icon="𝐒⬇" data-i18n="MESSAGE_LIST/SORT_SUBJECT_ASC"></a>
-			</li>
-			<li role="presentation" data-sort="REVERSE SUBJECT" data-bind="click: changeSort">
-				<a href="#" tabindex="-1" data-icon="𝐒⬆" data-i18n="MESSAGE_LIST/SORT_SUBJECT_DESC"></a>
-			</li>
-			<li class="dividerbar" role="presentation" data-sort="REVERSE ARRIVAL" data-bind="click: changeSort">
-				<a href="#" tabindex="-1" data-icon="📨⬇" data-i18n="MESSAGE_LIST/SORT_ARRIVAL_DESC"></a>
-			</li>
-			<li role="presentation" data-sort="ARRIVAL" data-bind="click: changeSort">
-				<a href="#" tabindex="-1" data-icon="📨⬆" data-i18n="MESSAGE_LIST/SORT_ARRIVAL_ASC"></a>
+			<li role="presentation" data-sort-key="ARRIVAL" data-bind="click: changeSort, css: {active: sortCriterion() === 'ARRIVAL'}">
+				<a href="#" tabindex="-1"><span class="g-icon g-icon--envelope" aria-hidden="true"></span><span data-i18n="MESSAGE_LIST/SORT_ARRIVAL"></span><span class="g-icon sort-direction" data-bind="css: sortDescending() ? 'g-icon--chevron-down' : 'g-icon--chevron-up', visible: sortCriterion() === 'ARRIVAL'" aria-hidden="true"></span></a>
 			</li>
 		</menu>
 	</div>

@@ -216,21 +216,14 @@ export class MailMessageList extends AbstractViewRight {
 				return list;
 			},
 
-			sortText: () => {
-				let mode = FolderUserStore.sortMode(),
-					has = w => mode.includes(w),
-					desc = '' === mode || has('REVERSE');
-				mode = mode.split(/\s+/);
-				if (has('FROM')) {
-					 return '@' + (desc ? '⬆' : '⬇');
-				}
-				if (has('SUBJECT')) {
-					 return '𝐒' + (desc ? '⬆' : '⬇');
-				}
-				if (has('SIZE')) {
-					 return '✉' + (desc ? '⬇' : '⬆');
-				}
-				return (has('ARRIVAL') ? '📨' : '📅') + (desc ? '⬇' : '⬆');
+			sortCriterion: () => {
+				const mode = FolderUserStore.sortMode();
+				return ['FROM', 'SIZE', 'SUBJECT', 'ARRIVAL'].find(key => mode.includes(key)) || 'DATE';
+			},
+
+			sortDescending: () => {
+				const mode = FolderUserStore.sortMode();
+				return '' === mode || mode.includes('REVERSE');
 			},
 
 			downloadAsZipAllowed: () => this.attachmentsActions.includes('zip')
@@ -360,7 +353,17 @@ export class MailMessageList extends AbstractViewRight {
 	}
 
 	changeSort(self, event) {
-		FolderUserStore.sortMode(event.target.closest('li').dataset.sort);
+		const key = event.target.closest('li').dataset.sortKey,
+			active = this.sortCriterion() === key,
+			descending = active ? !this.sortDescending() : ['DATE', 'SIZE', 'ARRIVAL'].includes(key),
+			modes = {
+				DATE: descending ? '' : 'DATE',
+				FROM: descending ? 'REVERSE FROM' : 'FROM',
+				SIZE: descending ? 'REVERSE SIZE' : 'SIZE',
+				SUBJECT: descending ? 'REVERSE SUBJECT' : 'SUBJECT',
+				ARRIVAL: descending ? 'REVERSE ARRIVAL' : 'ARRIVAL'
+			};
+		FolderUserStore.sortMode(modes[key]);
 		this.reload();
 	}
 

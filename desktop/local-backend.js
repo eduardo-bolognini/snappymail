@@ -111,18 +111,17 @@ class LocalBackend {
     // Templates and localization are compiled into SnappyMail's persistent
     // cache. Clear it on every desktop start so an installed update cannot
     // render markup from the previous bundle.
-    fs.rmSync(
-      path.join(this.dataRoot, '_data_', '_default_', 'cache'),
-      { recursive: true, force: true }
-    );
+    const cacheRoot = path.join(this.dataRoot, '_data_', '_default_', 'cache');
+    fs.rmSync(cacheRoot, { recursive: true, force: true });
+    fs.mkdirSync(cacheRoot, { recursive: true, mode: 0o700 });
     const pluginTarget = path.join(this.dataRoot, '_data_', '_default_', 'plugins', 'login-autoconfig');
     fs.mkdirSync(path.dirname(pluginTarget), { recursive: true, mode: 0o700 });
     fs.cpSync(this.bootstrapPluginRoot, pluginTarget, { recursive: true, force: true });
     this.prepareDesktopDomains();
-		this.prepareDesktopBranding();
+		this.prepareDesktopConfiguration();
   }
 
-	prepareDesktopBranding() {
+	prepareDesktopConfiguration() {
 		const configPath = path.join(this.dataRoot, '_data_', '_default_', 'configs', 'application.ini');
 		if (!fs.existsSync(configPath)) return;
 		const lines = fs.readFileSync(configPath, 'utf8').split(/\r?\n/);
@@ -131,6 +130,10 @@ class LocalBackend {
 		const updated = lines.map(line => {
 			const heading = line.match(/^\s*\[([^\]]+)\]\s*$/);
 			if (heading) section = heading[1].trim().toLowerCase();
+			if ('labs' === section && /^\s*use_local_proxy_for_external_images\s*=/.test(line)) {
+				if (!/^\s*use_local_proxy_for_external_images\s*=\s*Off\s*$/.test(line)) changed = true;
+				return 'use_local_proxy_for_external_images = Off';
+			}
 			if ('webmail' !== section) return line;
 			if (/^\s*title\s*=\s*"(?:SnappyMail Webmail|SnappyMail Focus)"\s*$/.test(line)) {
 				changed = true;

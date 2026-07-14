@@ -88,7 +88,7 @@ test('development mode stages code separately from writable data', () => {
 	fs.mkdirSync(configRoot, { recursive: true });
 	fs.writeFileSync(
 		path.join(configRoot, 'application.ini'),
-		'[webmail]\ntitle = "SnappyMail Webmail"\nloading_description = "SnappyMail"\n\n[security]\ntitle = "Keep me"\n'
+		'[webmail]\ntitle = "SnappyMail Webmail"\nloading_description = "SnappyMail"\n\n[labs]\nuse_local_proxy_for_external_images = On\n\n[security]\ntitle = "Keep me"\n'
 	);
   fs.writeFileSync(path.join(cacheRoot, 'stale-template'), 'old template');
   fs.writeFileSync(path.join(domainsRoot, 'default.json'), localhostDomain);
@@ -116,9 +116,11 @@ test('development mode stages code separately from writable data', () => {
   assert.equal(fs.existsSync(path.join(domainsRoot, 'default.json')), false);
   assert.equal(fs.existsSync(path.join(domainsRoot, `${os.hostname().toLowerCase()}.json`)), false);
   assert.equal(fs.existsSync(path.join(domainsRoot, 'custom.test.json')), true);
-  assert.equal(fs.existsSync(cacheRoot), false);
+  assert.equal(fs.existsSync(cacheRoot), true);
+  assert.deepEqual(fs.readdirSync(cacheRoot), []);
   assert.equal(fs.existsSync(path.join(domainsRoot, 'disabled')), true);
 	assert.match(fs.readFileSync(path.join(configRoot, 'application.ini'), 'utf8'), /title = "EasyMail"\nloading_description = "EasyMail"/);
+	assert.match(fs.readFileSync(path.join(configRoot, 'application.ini'), 'utf8'), /\[labs\]\nuse_local_proxy_for_external_images = Off/);
 	assert.match(fs.readFileSync(path.join(configRoot, 'application.ini'), 'utf8'), /\[security\]\ntitle = "Keep me"/);
   assert.equal(
     JSON.parse(fs.readFileSync(path.join(domainsRoot, 'provider.test.json'), 'utf8')).IMAP.host,
@@ -155,7 +157,8 @@ test('packaged mode removes compiled templates from previous app versions', () =
   });
   backend.prepareData();
 
-  assert.equal(fs.existsSync(cacheRoot), false);
+  assert.equal(fs.existsSync(cacheRoot), true);
+  assert.deepEqual(fs.readdirSync(cacheRoot), []);
   assert.ok(fs.existsSync(path.join(
     userDataPath,
     'snappymail-data',
@@ -166,4 +169,23 @@ test('packaged mode removes compiled templates from previous app versions', () =
     'index.php'
   )));
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('desktop external images bypass the local PHP proxy after user consent', () => {
+	const application = fs.readFileSync(path.join(
+		__dirname,
+		'..',
+		'..',
+		'snappymail',
+		'v',
+		'0.0.0',
+		'app',
+		'libraries',
+		'RainLoop',
+		'Config',
+		'Application.php'
+	), 'utf8');
+
+	assert.match(application, /use_local_proxy_for_external_images' => array\(!\\getenv\('SNAPPYMAIL_DESKTOP'\)\)/);
+	assert.match(application, /'view_images'\s*=> array\('ask'/);
 });

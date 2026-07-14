@@ -103,13 +103,27 @@ test('mail addresses expose a dossier hover card in reading and composition', ()
 	const component = read('dev/Common/ContactHoverCard.js');
 	const addresses = read('dev/Component/EmailAddresses.js');
 	const message = read('snappymail/v/0.0.0/app/templates/Views/User/MailMessageView.html');
+	const compose = read('snappymail/v/0.0.0/app/templates/Views/User/PopupsCompose.html');
 	const preload = read('desktop/preload.js');
 
 	assert.match(component, /a\[href\^="mailto:"\]/);
 	assert.match(component, /window\.snappyDesktop\?\.ai\?\.contactCard/);
 	assert.match(addresses, /'data-contact-email':v\.obj\.email/);
 	assert.match(message, /to\.toString\(false, true\)/);
+	assert.match(compose, /emailsTags: to/);
+	assert.match(compose, /emailsTags: cc/);
+	assert.match(compose, /emailsTags: bcc/);
 	assert.match(preload, /contactCard: email => invoke\('contact-card'/);
+});
+
+test('message sorting uses a compact icon menu without emoji labels', () => {
+	const view = read('dev/View/User/MailBox/MessageList.js');
+	const template = read('snappymail/v/0.0.0/app/templates/Views/User/MailMessageList.html');
+
+	assert.match(view, /sortCriterion/);
+	assert.match(view, /sortDescending/);
+	assert.equal((template.match(/data-sort-key=/g) || []).length, 5);
+	assert.doesNotMatch(template.slice(template.indexOf('sort-menu'), template.indexOf('</menu>', template.indexOf('sort-menu'))), /data-icon=|[\u{1F300}-\u{1FAFF}]/u);
 });
 
 test('unified Inbox actions are contextual and archive or spam through the source account', () => {

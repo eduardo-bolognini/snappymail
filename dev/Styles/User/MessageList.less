@@ -12,8 +12,50 @@
 
 #no-sort-list,
 #sort-list-dropdown-id {
-	padding-left: 6px;
-	padding-right: 6px;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	justify-content: center;
+	min-width: 34px;
+	padding-left: 8px;
+	padding-right: 8px;
+
+	.g-icon {
+		font-size: 16px;
+	}
+}
+
+.sort-menu {
+	.dropdown-menu {
+		box-sizing: border-box;
+		min-width: 210px;
+		padding: 6px;
+	}
+
+	.dropdown-menu li {
+		margin: 0;
+	}
+
+	.dropdown-menu a {
+		display: grid;
+		grid-template-columns: 20px 1fr 18px;
+		align-items: center;
+		gap: 8px;
+		min-height: 38px;
+		padding: 0 10px;
+		border-radius: 6px;
+		color: #4f4f4f;
+	}
+
+	.dropdown-menu li.active > a {
+		background: #fff0ea;
+		color: #d83f00;
+		font-weight: 600;
+	}
+
+	.sort-direction {
+		justify-self: end;
+	}
 }
 
 #V-MailMessageList .btn-toolbar {

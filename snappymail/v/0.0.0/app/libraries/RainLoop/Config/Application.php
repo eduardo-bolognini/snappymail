@@ -444,7 +444,9 @@ Enables caching in the system'),
 				'custom_login_link' => array(''),
 				'custom_logout_link' => array(''),
 				'http_client_ip_check_proxy' => array(false),
-				'use_local_proxy_for_external_images' => array(true),
+				// The desktop runtime loads remote images directly after explicit user consent.
+				// Its local PHP proxy is slower and can time out on common CDN hosts.
+				'use_local_proxy_for_external_images' => array(!\getenv('SNAPPYMAIL_DESKTOP')),
 				'image_exif_auto_rotate' => array(false),
 				'cookie_default_path' => array(''),
 				'cookie_default_secure' => array(false),
