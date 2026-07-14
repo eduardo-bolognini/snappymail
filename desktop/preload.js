@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('snappyDesktop', {
     status: () => invoke('status'),
     workspace: () => invoke('workspace'),
 		recipientSuggestions: query => invoke('recipient-suggestions', { query }),
+		contactCard: email => invoke('contact-card', { email }),
     loginApiKey: apiKey => invoke('login-api-key', { apiKey }),
     startDeviceLogin: () => invoke('login-device'),
     logout: () => invoke('logout'),

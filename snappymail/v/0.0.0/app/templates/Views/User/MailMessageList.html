@@ -1,4 +1,4 @@
-<div class="btn-toolbar" data-bind="css: {'hasChecked':checkAll}">
+<div class="btn-toolbar" data-bind="css: {'hasSelection': messageList.hasCheckedOrSelected}">
 	<a class="btn btn-thin toggleLeft"><span class="g-icon g-icon--bars" aria-hidden="true"></span></a>
 	<a class="btn buttonCompose onCheckedHide" data-bind="click: composeClick, css: {'btn-warning': composeInEdit, 'btn-success': !composeInEdit()}" data-i18n="[title]FOLDER_LIST/BUTTON_NEW_MESSAGE">
 		<span class="g-icon g-icon--paper-plane" aria-hidden="true"></span>
@@ -6,7 +6,7 @@
 	<a class="btn onCheckedHide" data-bind="click: reload" data-i18n="[title]MESSAGE_LIST/BUTTON_RELOAD">
 		<span class="g-icon g-icon--arrow-rotate-right" aria-hidden="true"></span>
 	</a>
-	<a href="#" tabindex="-1" class="btn onCheckedShow" data-bind="command: moveCommand" data-i18n="[title]GLOBAL/MOVE_TO">
+	<a href="#" tabindex="-1" class="btn onCheckedShow" data-bind="visible: !unifiedInbox(), command: moveCommand" data-i18n="[title]GLOBAL/MOVE_TO">
 		<span class="g-icon g-icon--copy visible-on-ctrl-btn" aria-hidden="true"></span>
 		<span class="g-icon g-icon--folder hidden-on-ctrl-btn" aria-hidden="true"></span>
 	</a>
@@ -81,7 +81,7 @@
 		<div id="no-sort-list" class="btn fontastic" data-i18n="[title]MESSAGE_LIST/NO_SORT">✖⬇</div>
 	</div>
 	<div class="btn-group dropdown onCheckedHide" data-bind="visible: sortSupported(), registerBootstrapDropdown: true">
-		<a id="sort-list-dropdown-id" class="btn dropdown-toggle fontastic" href="#" tabindex="-1" data-i18n="[title]MESSAGE_LIST/SORT" data-bind="text: sortText">⬇</a>
+		<a id="sort-list-dropdown-id" class="btn dropdown-toggle" href="#" tabindex="-1" data-i18n="[title]MESSAGE_LIST/SORT"><span data-bind="text: sortText"></span><span class="g-icon g-icon--chevron-down dropdown-chevron" aria-hidden="true"></span></a>
 		<menu class="dropdown-menu" role="menu" aria-labelledby="sort-list-dropdown-id">
 			<li role="presentation" data-sort="" data-bind="click: changeSort">
 				<a href="#" tabindex="-1" data-icon="📅⬇" data-i18n="MESSAGE_LIST/SORT_DATE_DESC"></a>
@@ -124,7 +124,7 @@
 			<input type="search" class="inputSearch" tabindex="-1" placeholder="Search" autocorrect="off" autocapitalize="off" data-i18n="[placeholder]GLOBAL/SEARCH" data-bind="textInput: inputSearch, hasfocus: focusSearch">
 			<a class="closeSearch" data-bind="click: cancelSearch, visible: messageListSearchDesc()">×</a>
 		</div>
-		<a class="btn buttonMoreSearch" data-bind="click: advancedSearchClick">▼</a>
+		<a class="btn buttonMoreSearch" data-bind="click: advancedSearchClick"><span class="g-icon g-icon--chevron-down" aria-hidden="true"></span></a>
 	</div>
 	<div class="b-content">
 		<div class="listThreadUidDesc" data-bind="visible: messageList.threadUid(), click: cancelThreadUid"

@@ -13,8 +13,6 @@
   [![License](https://img.shields.io/badge/license-AGPL--3.0-55534F)](LICENSE)
 </div>
 
-![EasyMail inbox with an anonymized demo mailbox](docs/assets/screenshots/easymail-inbox.png)
-
 ## Email first
 
 EasyMail is not an AI inbox with email attached. It is a complete mail client built around the workflows that already matter: IMAP and SMTP, multiple accounts, a unified inbox, folders, search, complete threads, attachments, drafts, encryption, notifications, and familiar reply and forwarding controls.

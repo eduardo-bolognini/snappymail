@@ -246,6 +246,12 @@
 		"BUTTON_SYNC": "Sincronizzazione (CardDAV)",
 		"SEND_TO_ALL_CONTACT_EMAILS": "Send to all contact emails"
 	},
+	"CONTACT_CARD": {
+		"RELATIONSHIP": "Relazione",
+		"GROUPS": "Gruppi",
+		"YOUR_STYLE": "Come scrivi tu",
+		"THEIR_STYLE": "Come scrive questa persona"
+	},
 	"COMPOSE": {
 		"LINK_SHOW_INPUTS": "Visualizza tutti i campi",
 		"BUTTON_SEND": "Invia",

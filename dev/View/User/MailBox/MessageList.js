@@ -18,7 +18,7 @@ import { isFullscreen, toggleFullscreen } from 'Common/Fullscreen';
 import { mailBox } from 'Common/Links';
 import { Selector } from 'Common/Selector';
 
-import { i18n } from 'Common/Translator';
+import { i18n, getNotification } from 'Common/Translator';
 
 import { dropFilesInFolder } from 'Common/Folders';
 
@@ -351,8 +351,8 @@ export class MailMessageList extends AbstractViewRight {
 				&& MessagelistUserStore.hasCheckedOrSelectedAndUndeleted(),
 			undeleteCommand: () => !MessagelistUserStore.unifiedInbox()
 				&& MessagelistUserStore.hasCheckedOrSelectedAndDeleted(),
-			archiveCommand: canBeMovedHelper,
-			spamCommand: canBeMovedHelper,
+			archiveCommand: () => MessagelistUserStore.hasCheckedOrSelected(),
+			spamCommand: () => MessagelistUserStore.hasCheckedOrSelected(),
 			notSpamCommand: canBeMovedHelper,
 			moveCommand: canBeMovedHelper,
 			copyCommand: canBeMovedHelper
@@ -451,11 +451,47 @@ export class MailMessageList extends AbstractViewRight {
 	}
 
 	archiveCommand() {
+		if (MessagelistUserStore.unifiedInbox()) {
+			this.moveUnifiedMessages('archive');
+			return;
+		}
 		moveMessagesToFolderType(FolderType.Archive);
 	}
 
 	spamCommand() {
+		if (MessagelistUserStore.unifiedInbox()) {
+			this.moveUnifiedMessages('spam');
+			return;
+		}
 		moveMessagesToFolderType(FolderType.Junk);
+	}
+
+	moveUnifiedMessages(target) {
+		const selected = MessagelistUserStore.listCheckedOrSelected(),
+			messages = selected.map(message => ({
+				account: message.account,
+				folder: message.folder,
+				uid: Number(message.uid)
+			})).filter(message => message.account && message.folder && message.uid);
+		if (!messages.length) return;
+		Remote.request('UnifiedMessageMove', (error, data) => {
+			if (error) {
+				alert(getNotification(error));
+				return;
+			}
+			const moved = new Set((data?.Result?.moved || []).map(item =>
+				`${String(item.account).toLowerCase()}\n${item.folder}\n${item.uid}`
+			));
+			selected.forEach(message => {
+				const key = `${String(message.account).toLowerCase()}\n${message.folder}\n${message.uid}`;
+				if (moved.has(key)) MessagelistUserStore.remove(message);
+			});
+			MessageUserStore.message(null);
+			MessagelistUserStore.reload(false, true);
+		}, {
+			target,
+			messages: JSON.stringify(messages)
+		});
 	}
 
 	notSpamCommand() {

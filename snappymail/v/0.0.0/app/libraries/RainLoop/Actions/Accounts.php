@@ -327,6 +327,49 @@ trait Accounts
 		));
 	}
 
+	/**
+	 * Moves messages selected in the unified Inbox through their owning accounts.
+	 */
+	public function DoUnifiedMessageMove(): array
+	{
+		$aMessages = \json_decode((string) $this->GetActionParam('messages', '[]'), true);
+		$sTarget = (string) $this->GetActionParam('target', '');
+		if (!\is_array($aMessages) || !\in_array($sTarget, array('archive', 'spam'), true)) {
+			throw new ClientException(Notifications::InvalidInputArgument);
+		}
+
+		$sSetting = 'archive' === $sTarget ? 'ArchiveFolder' : 'JunkFolder';
+		$aMoved = array();
+		$aFailed = array();
+		foreach ($aMessages as $aMessage) {
+			$sAccount = (string) ($aMessage['account'] ?? '');
+			$sFolder = (string) ($aMessage['folder'] ?? '');
+			$iUid = (int) ($aMessage['uid'] ?? 0);
+			if (!$sAccount || !$sFolder || $iUid < 1) {
+				continue;
+			}
+			try {
+				[$oAccount, $oMailClient] = $this->aiMailClient($sAccount);
+				$oSettings = $this->SettingsProvider(true)->Load($oAccount);
+				$sDestination = $oSettings instanceof \RainLoop\Settings
+					? (string) $oSettings->GetConf($sSetting, '') : '';
+				if (!$sDestination || $sDestination === $sFolder) {
+					throw new \RuntimeException('Destination folder is not configured');
+				}
+				$oUids = new \MailSo\Imap\SequenceSet(array($iUid));
+				if ('spam' === $sTarget) {
+					$oMailClient->ImapClient()->MessageSetFlag($sFolder, $oUids, \MailSo\Imap\Enumerations\MessageFlag::JUNK);
+				}
+				$oMailClient->ImapClient()->MessageMove($sFolder, $sDestination, $oUids);
+				$aMoved[] = array('account' => $oAccount->Email(), 'folder' => $sFolder, 'uid' => $iUid);
+			} catch (\Throwable $oException) {
+				$aFailed[] = array('account' => $sAccount, 'folder' => $sFolder, 'uid' => $iUid);
+			}
+		}
+
+		return $this->DefaultResponse(array('moved' => $aMoved, 'failed' => $aFailed));
+	}
+
 	public function DoAiGetMessage(): array
 	{
 		$sAccount = (string) $this->GetActionParam('account', '');

@@ -285,7 +285,7 @@
 				</button>
 			</div>
 			<div class="btn-group dropdown" data-bind="visible: !readOnly(), registerBootstrapDropdown: true">
-				<a id="button-add-prop-dropdown-id" href="#" class="btn dropdown-toggle" data-i18n="CONTACTS/ADD_MENU_LABEL"></a>
+				<a id="button-add-prop-dropdown-id" href="#" class="btn dropdown-toggle"><span data-i18n="CONTACTS/ADD_MENU_LABEL"></span><span class="g-icon g-icon--chevron-down dropdown-chevron" aria-hidden="true"></span></a>
 				<menu class="dropdown-menu right-edge" style="text-align: left" role="menu" aria-labelledby="button-add-prop-dropdown-id">
 					<li role="presentation" data-bind="visible: null == nickname()">
 						<a href="#" data-bind="click: addNickname">

@@ -154,11 +154,11 @@
 					<div class="informationShortWrp">
 						<div class="informationShort" data-bind="visible: message().to.length">
 							<span data-i18n="GLOBAL/TO"></span>:
-							<span data-bind="text: message().to"></span>
+							<span data-bind="html: message().to.toString(false, true)"></span>
 						</div>
 						<div class="informationShort" data-bind="visible: message().cc.length">
 							<span data-i18n="GLOBAL/CC"></span>:
-							<span data-bind="text: message().cc"></span>
+							<span data-bind="html: message().cc.toString(false, true)"></span>
 						</div>
 					</div>
 					<div class="informationShort" data-bind="visible: message().spamResult">
@@ -170,23 +170,23 @@
 					<table>
 						<tr data-bind="visible: from.length">
 							<td data-i18n="GLOBAL/FROM"></td>
-							<td data-bind="text: from"></td>
+							<td data-bind="html: from.toString(false, true)"></td>
 						</tr>
 						<tr data-bind="visible: to.length">
 							<td data-i18n="GLOBAL/TO"></td>
-							<td data-bind="text: to"></td>
+							<td data-bind="html: to.toString(false, true)"></td>
 						</tr>
 						<tr data-bind="visible: cc.length">
 							<td data-i18n="GLOBAL/CC"></td>
-							<td data-bind="text: cc"></td>
+							<td data-bind="html: cc.toString(false, true)"></td>
 						</tr>
 						<tr data-bind="visible: bcc.length">
 							<td data-i18n="GLOBAL/BCC"></td>
-							<td data-bind="text: bcc"></td>
+							<td data-bind="html: bcc.toString(false, true)"></td>
 						</tr>
 						<tr data-bind="visible: replyTo.length">
 							<td data-i18n="GLOBAL/REPLY_TO"></td>
-							<td data-bind="text: replyTo"></td>
+							<td data-bind="html: replyTo.toString(false, true)"></td>
 						</tr>
 						<tr data-bind="visible: dateTimestamp">
 							<td data-i18n="MESSAGE/LABEL_DATE"></td>
@@ -286,7 +286,7 @@
 						<div class="btn-toolbar showImages" data-bind="visible: message().hasImages()">
 							<div class="btn" data-bind="click: showImages" data-icon="🖼" data-i18n="MESSAGE/BUTTON_SHOW_IMAGES"></div>
 							<div class="btn-group dropdown" data-bind="registerBootstrapDropdown: true, visible: showWhitelistOptions" style="display: inline-block">
-								<a class="btn dropdown-toggle" id="whitelist-dropdown-id" data-icon="🖼" href="#" tabindex="-1"><span data-i18n="SETTINGS_GENERAL/IMAGES_WHITELIST"></span> ▼</a>
+								<a class="btn dropdown-toggle" id="whitelist-dropdown-id" data-icon="🖼" href="#" tabindex="-1"><span data-i18n="SETTINGS_GENERAL/IMAGES_WHITELIST"></span><span class="g-icon g-icon--chevron-down dropdown-chevron" aria-hidden="true"></span></a>
 								<menu class="dropdown-menu" role="menu" aria-labelledby="whitelist-dropdown-id">
 									<!-- ko foreach: message().whitelistOptions() -->
 									<li role="presentation">

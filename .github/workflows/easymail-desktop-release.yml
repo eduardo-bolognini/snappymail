@@ -36,12 +36,7 @@ jobs:
         working-directory: desktop
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
-      CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MACOS_CSC_LINK != '' && 'true' || 'false' }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      HAS_MACOS_CERTIFICATE: ${{ secrets.MACOS_CSC_LINK != '' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -59,11 +54,27 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          if test -n "$CSC_LINK"; then
+          if test "$HAS_MACOS_CERTIFICATE" = "true"; then
             echo "Building a signed macOS release."
           else
             echo "Signing secrets are not configured; publishing an unsigned community build."
           fi
       - run: npm ci
       - run: npm run runtime:prepare
-      - run: npx electron-builder ${{ matrix.target }} --publish always
+      - name: Publish signed macOS release
+        if: runner.os == 'macOS' && env.HAS_MACOS_CERTIFICATE == 'true'
+        env:
+          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npx electron-builder ${{ matrix.target }} --publish always
+      - name: Publish unsigned macOS release
+        if: runner.os == 'macOS' && env.HAS_MACOS_CERTIFICATE != 'true'
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder ${{ matrix.target }} --publish always
+      - name: Publish desktop release
+        if: runner.os != 'macOS'
+        run: npx electron-builder ${{ matrix.target }} --publish always

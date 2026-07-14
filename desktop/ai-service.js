@@ -99,6 +99,28 @@ function recipientDirectorySuggestions(state = {}, query = '') {
 	return [...groupResults, ...contactResults];
 }
 
+function contactCard(state = {}, email = '') {
+	const normalizedEmail = String(email || '').trim().toLowerCase(),
+		contact = (state.contacts || []).find(item => String(item?.email || '').trim().toLowerCase() === normalizedEmail);
+	if (!contact) return null;
+	const groupIds = new Set(contact.groupIds || []);
+	return {
+		id: String(contact.id || ''),
+		email: String(contact.email || normalizedEmail),
+		name: String(contact.name || ''),
+		organization: String(contact.organization || ''),
+		jobTitle: String(contact.jobTitle || ''),
+		relationship: String(contact.relationshipSummary || contact.relationship || contact.summary || ''),
+		myWritingStyle: String(contact.myWritingStyle || contact.writingStyle || ''),
+		theirWritingStyle: String(contact.theirWritingStyle || ''),
+		groups: (state.groups || [])
+			.filter(group => groupIds.has(group.id))
+			.map(group => String(group.name || ''))
+			.filter(Boolean),
+		messageCount: Math.max(0, Number(contact.messageCount) || 0)
+	};
+}
+
 const ADDRESS_SCHEMA = {
 	type: 'object',
 	additionalProperties: false,
@@ -755,6 +777,10 @@ class AiService extends EventEmitter {
 		return recipientDirectorySuggestions(this.workspace.publicState(), query);
 	}
 
+	contactCard(email) {
+		return contactCard(this.workspace.publicState(), email);
+	}
+
   async loginApiKey(apiKey) {
     const account = await this.server.loginApiKey(apiKey);
     this.emitEvent('auth', { success: true });
@@ -1008,5 +1034,6 @@ module.exports = {
 	normalizePluginCatalog,
 	normalizedThreads,
 	recipientDirectorySuggestions,
+	contactCard,
 	splitMessage
 };

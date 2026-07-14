@@ -231,6 +231,7 @@ function registerAiHandlers() {
     status: () => aiService.status(),
     workspace: () => aiService.getWorkspace(),
 		'recipient-suggestions': payload => aiService.recipientSuggestions(payload?.query),
+		'contact-card': payload => aiService.contactCard(payload?.email),
     'login-api-key': payload => aiService.loginApiKey(payload?.apiKey),
     'login-device': () => aiService.startDeviceLogin(),
     logout: () => aiService.logout(),

@@ -86,3 +86,52 @@ test('composer exposes account-qualified senders and sends without switching the
   assert.match(ai, /allowedSenders/);
   assert.match(ai, /senderLocked/);
 });
+
+test('recipient groups expand independently from the browser datalist input type', () => {
+	const addresses = read('dev/Component/EmailAddresses.js');
+	const compose = read('dev/View/Popup/Compose.js');
+
+	assert.match(addresses, /input: \(\) => \{[\s\S]{0,260}if \(self\._selectSuggestion\(\)\) return;/);
+	assert.match(addresses, /suggestion\.addresses/);
+	assert.match(addresses, /addresses\.join\(', '\)/);
+	assert.match(addresses, /item\.insertValue, item\.label/);
+	assert.match(compose, /'group' === item\.type/);
+	assert.match(compose, /addresses\s*\n\s*\}\);/);
+});
+
+test('mail addresses expose a dossier hover card in reading and composition', () => {
+	const component = read('dev/Common/ContactHoverCard.js');
+	const addresses = read('dev/Component/EmailAddresses.js');
+	const message = read('snappymail/v/0.0.0/app/templates/Views/User/MailMessageView.html');
+	const preload = read('desktop/preload.js');
+
+	assert.match(component, /a\[href\^="mailto:"\]/);
+	assert.match(component, /window\.snappyDesktop\?\.ai\?\.contactCard/);
+	assert.match(addresses, /'data-contact-email':v\.obj\.email/);
+	assert.match(message, /to\.toString\(false, true\)/);
+	assert.match(preload, /contactCard: email => invoke\('contact-card'/);
+});
+
+test('unified Inbox actions are contextual and archive or spam through the source account', () => {
+	const accounts = read('snappymail/v/0.0.0/app/libraries/RainLoop/Actions/Accounts.php');
+	const view = read('dev/View/User/MailBox/MessageList.js');
+	const template = read('snappymail/v/0.0.0/app/templates/Views/User/MailMessageList.html');
+
+	assert.match(accounts, /public function DoUnifiedMessageMove\(\): array/);
+	assert.match(accounts, /MessageMove\(\$sFolder, \$sDestination, \$oUids\)/);
+	assert.match(view, /Remote\.request\('UnifiedMessageMove'/);
+	assert.match(template, /hasSelection.*hasCheckedOrSelected/);
+	assert.match(template, /visible: !unifiedInbox\(\), command: moveCommand/);
+});
+
+test('dropdown affordances use icon chevrons rather than text triangles', () => {
+	const templates = [
+		'MailMessageList.html', 'MailMessageView.html', 'PopupsCompose.html', 'PopupsContacts.html'
+	].map(file => read(`snappymail/v/0.0.0/app/templates/Views/User/${file}`)).join('\n');
+
+	assert.doesNotMatch(templates, />\s*▼\s*</);
+	assert.match(templates, /g-icon--chevron-down/);
+	const forms = read('vendors/bootstrap/less/forms.less');
+	assert.doesNotMatch(forms, /PHN2ZyB4bWxucz0n/);
+	assert.match(forms, /M2\.97 5\.47/);
+});

@@ -3,6 +3,7 @@ import 'External/User/ko';
 import { SMAudio } from 'Common/Audio';
 import { arrayLength } from 'Common/Utils';
 import { mailToHelper, setLayoutResizer, dropdownsDetectVisibility, loadAccountsAndIdentities } from 'Common/UtilsUser';
+import { installContactHoverCard } from 'Common/ContactHoverCard';
 
 import {
 	FolderType,
@@ -83,6 +84,7 @@ export class AppUser extends AbstractApp {
 
 		addShortcut('escape,enter', '', dropdownsDetectVisibility);
 		addEventListener('click', dropdownsDetectVisibility);
+		installContactHoverCard();
 
 		this.folderList = FolderUserStore.folderList;
 		this.messageList = MessagelistUserStore;

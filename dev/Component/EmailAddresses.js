@@ -127,8 +127,10 @@ export class EmailAddressesComponent {
 						}
 				}
 			},
-			input: e => {
-				if ('insertReplacementText' === e.inputType && self._selectSuggestion()) return;
+			input: () => {
+				// Chromium does not use the same inputType for every native datalist selection.
+				// Resolve the selected object first so contact groups always expand to members.
+				if (self._selectSuggestion()) return;
 				self._parseInput();
 				self._updateDatalist();
 			}
@@ -204,7 +206,13 @@ export class EmailAddressesComponent {
 	}
 
 	_selectSuggestion() {
-		const suggestion = this._suggestions.get(this.input.value.trim());
+		const selectedValue = this.input.value.trim(),
+			normalizedValue = selectedValue.toLocaleLowerCase(),
+			suggestion = this._suggestions.get(selectedValue)
+				|| [...this._suggestions.values()].find(item =>
+					[item.value, item.insertValue, item.label]
+						.some(value => String(value || '').trim().toLocaleLowerCase() === normalizedValue)
+				);
 		if (!suggestion) return false;
 		if (suggestion.command && this.options.commandCallback) {
 			this.input.value = '';
@@ -365,7 +373,12 @@ export class EmailAddressesComponent {
 
 		self._chosenValues.forEach(v => {
 			if (v.obj) {
-				let li = createElement('li',{title:v.obj.toLine(),draggable:'true'}),
+				let li = createElement('li',{
+					title:v.obj.toLine(),
+					draggable:'true',
+					'data-contact-email':v.obj.email,
+					'data-contact-name':v.obj.name
+				}),
 					el = createElement('span');
 				el.append(v.obj.toLine(true));
 				li.append(el);

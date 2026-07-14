@@ -7,6 +7,7 @@ const {
 	composeChatPrompt,
 	composePrompt,
 	composeReasoningEffort,
+	contactCard,
 	corpusPrompt,
 	normalizePluginCatalog,
 	preSendReviewPrompt,
@@ -209,6 +210,25 @@ test('recipient directory returns matching contacts and expandable groups', () =
 	assert.ok(byPerson.some(item => 'contact' === item.type && 'alice@example.com' === item.email));
 	assert.ok(byPerson.some(item => 'group' === item.type && 'project-sport' === item.id));
 	assert.deepEqual(recipientDirectorySuggestions(state, ''), []);
+});
+
+test('contact hover card exposes only compact dossier fields for the matching address', () => {
+	const state = {
+		contacts: [{
+			id: 'alice', email: 'Alice@Example.com', name: 'Alice Rossi', organization: 'Project Sport',
+			jobTitle: 'Coordinator', relationshipSummary: 'Operational project contact.',
+			myWritingStyle: 'Direct and concise.', theirWritingStyle: 'Detailed and formal.',
+			groupIds: ['project-sport'], messageCount: 12, notes: 'Private note not needed in hover.'
+		}],
+		groups: [{ id: 'project-sport', name: 'Project Sport', summary: 'Internal group detail.' }]
+	};
+	assert.deepEqual(contactCard(state, ' alice@example.com '), {
+		id: 'alice', email: 'Alice@Example.com', name: 'Alice Rossi', organization: 'Project Sport',
+		jobTitle: 'Coordinator', relationship: 'Operational project contact.',
+		myWritingStyle: 'Direct and concise.', theirWritingStyle: 'Detailed and formal.',
+		groups: ['Project Sport'], messageCount: 12
+	});
+	assert.equal(contactCard(state, 'unknown@example.com'), null);
 });
 
 const analysisResult = () => ({
