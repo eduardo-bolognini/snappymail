@@ -1,3 +1,4 @@
+<img width="1566" height="1054" alt="Screenshot 2026-07-14 alle 15 43 42" src="https://github.com/user-attachments/assets/ec129610-13ae-46e4-8031-3a7eff8d93a3" />
 <div align="center">
   <img src="desktop/assets/icon.png" width="112" alt="EasyMail icon">
 
@@ -8,9 +9,14 @@
   A focused desktop mail client for people who want a calmer inbox, their own writing voice,
   and optional AI support that works beside them instead of taking over.
 
-  [![Release](https://img.shields.io/github/v/release/eduardo-bolognini/snappymail?include_prereleases&label=release&color=FC4B08)](https://github.com/eduardo-bolognini/snappymail/releases)
+
   [![Desktop](https://img.shields.io/badge/desktop-macOS%20%7C%20Windows%20%7C%20Linux-171716)](#download)
   [![License](https://img.shields.io/badge/license-AGPL--3.0-55534F)](LICENSE)
+
+  <img width="1566" height="1054" alt="image" src="https://github.com/user-attachments/assets/70fe082e-ab05-4588-a2fa-b3d152bafb39" />
+  <img width="1566" height="1054" alt="Screenshot 2026-07-14 alle 15 44 38" src="https://github.com/user-attachments/assets/83d6e75e-23d1-4d18-8d9b-f2e7f460a545" />
+
+
 </div>
 
 ## Email first
