@@ -1,4 +1,3 @@
-<img width="1566" height="1054" alt="Screenshot 2026-07-14 alle 15 43 42" src="https://github.com/user-attachments/assets/ec129610-13ae-46e4-8031-3a7eff8d93a3" />
 <div align="center">
   <img src="desktop/assets/icon.png" width="112" alt="EasyMail icon">
 
