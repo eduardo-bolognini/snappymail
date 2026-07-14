@@ -2,7 +2,10 @@
   "name": "snappymail-focus-desktop",
   "version": "0.1.0",
   "description": "EasyMail desktop client powered by the SnappyMail mail core",
-  "author": "Eduardo Bolognini",
+  "author": {
+    "name": "Eduardo Bolognini",
+    "email": "eduardo.bolognini@yahoo.com"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/eduardo-bolognini/snappymail.git"
